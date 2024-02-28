@@ -17,17 +17,24 @@
 7. [Acknowledgments](#Acknowledgments)
 8. [Contacts](#Contacts)
 
-# Open3DIS: Open-vocabulary 3D Instance Segmentation with 2D Mask Guidance
+# Open3DIS: Open-vocabulary 3D Instance Segmentation with 2D Mask Guidance [CVPR'24](https://cvpr.thecvf.com/)
 <a href="https://arxiv.org/abs/2312.10671"><img src="https://img.shields.io/badge/https%3A%2F%2Farxiv.org%2Fabs%2F2303.00246-arxiv-brightgreen"></a>
+<div align="center">
+<a href="https://github.com/PhucNDA" target="_blank">Phuc&nbsp;Nguyen</a> &emsp; <b>&middot;</b> &emsp;
+<a href="https://ngoductuanlhp.github.io/" target="_blank">Tuan&nbsp;Duc&nbsp;Ngo</a>
+<br><br>
+<a href="https://people.csail.mit.edu/ganchuang/" target="_blank">Chuang&nbsp;Gan</a> &emsp; <b>&middot;</b> &emsp;
+<a href="https://people.cs.umass.edu/~kalo/" target="_blank">Evangelos&nbsp;Kalogerakis</a>
+<br><br>
+<a href="https://scholar.google.com/citations?user=FYZ5ODQAAAAJ&hl=en" target="_blank">Anh&nbsp;Tran</a> &emsp; <b>&middot;</b> &emsp;
+<a href="https://sites.google.com/view/cuongpham/home" target="_blank">Cuong&nbsp;Pham</a> &emsp; <b>&middot;</b> &emsp;
+<a href="https://www.khoinguyen.org/" target="_blank">Khoi&nbsp;Nguyen</a> 
+<br><br>
+VinAI Research, MIT-IBM Watson AI Lab, Posts & Telecommunications Inst. of Tech, UMass Amherst
+<br><br>
+</div>
 
-[Phuc Nguyen](https://github.com/PhucNDA),
-[Tuan Duc Ngo](https://ngoductuanlhp.github.io/),
-[Chuang Gan](https://people.csail.mit.edu/ganchuang/)
-[Evangelos Kalogerakis](https://people.cs.umass.edu/~kalo/)
-[Anh Tran](https://scholar.google.com/citations?user=FYZ5ODQAAAAJ&hl=en),
-[Cuong Pham](https://sites.google.com/view/cuongpham/home),
-[Khoi Nguyen](https://www.khoinguyen.org/)<br>
-VinAI Research, MIT-IBM Watson AI Lab, Posts & Telecommunications Inst. of Tech. ,UMass Amherst
+
 > **Abstract**: 
 We introduce Open3DIS, a novel solution designed to tackle the problem of Open-Vocabulary Instance Segmentation within 3D scenes. Objects within 3D environments exhibit diverse shapes, scales, and colors, making precise instance-level identification a challenging task. Recent advancements in Open-Vocabulary scene understanding have made significant strides in this area by employing class-agnostic 3D instance proposal networks for object localization and learning queryable features for each 3D mask. While these methods produce high-quality instance proposals, they struggle with identifying small-scale and geometrically ambiguous objects. The key idea of our method is a new module that aggregates 2D instance masks across frames and maps them to geometrically coherent point cloud regions as high-quality object proposals addressing the above limitations. These are then combined with 3D class-agnostic instance proposals to include a wide range of objects in the real world. 
 To validate our approach, we conducted experiments on three prominent datasets, including Scannet200, S3DIS, and Replica, demonstrating significant performance gains in segmenting objects with diverse categories over the state-of-the-art approaches. 
