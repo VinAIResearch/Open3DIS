@@ -30,7 +30,8 @@
 <a href="https://sites.google.com/view/cuongpham/home" target="_blank">Cuong&nbsp;Pham</a> &emsp; <b>&middot;</b> &emsp;
 <a href="https://www.khoinguyen.org/" target="_blank">Khoi&nbsp;Nguyen</a> 
 <br><br>
-VinAI Research, MIT-IBM Watson AI Lab, Posts & Telecommunications Inst. of Tech, UMass Amherst
+VinAI Research &emsp; <b>&middot;</b> &emsp; MIT-IBM Watson AI Lab &emsp; <b>&middot;</b> &emsp;
+Posts & Telecommunications Inst. of Tech &emsp; <b>&middot;</b> &emsp; UMass Amherst
 <br><br>
 </div>
 
