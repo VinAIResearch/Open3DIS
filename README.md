@@ -12,10 +12,9 @@
 2. [Download pretrained foundation models](#Download_pretrained_foundation_models)
 3. [Data Preparation](#Data_Preparation) 
 4. [Run the code](#Run_the_code)
-5. [Some important modules](#Some_important_modules)
-6. [TODO](#TODO)
-7. [Acknowledgments](#Acknowledgments)
-8. [Contacts](#Contacts)
+5. [TODO](#TODO)
+6. [Acknowledgments](#Acknowledgments)
+7. [Contacts](#Contacts)
 
 # Open3DIS: Open-vocabulary 3D Instance Segmentation with 2D Mask Guidance [CVPR'24](https://cvpr.thecvf.com/)
 <a href="https://arxiv.org/abs/2312.10671"><img src="https://img.shields.io/badge/https%3A%2F%2Farxiv.org%2Fabs%2F2303.00246-arxiv-brightgreen"></a>
@@ -30,8 +29,9 @@
 <a href="https://sites.google.com/view/cuongpham/home" target="_blank">Cuong&nbsp;Pham</a> &emsp; <b>&middot;</b> &emsp;
 <a href="https://www.khoinguyen.org/" target="_blank">Khoi&nbsp;Nguyen</a> 
 <br><br>
-VinAI Research &emsp; <b>&middot;</b> &emsp; MIT-IBM Watson AI Lab &emsp; <b>&middot;</b> &emsp;
-Posts & Telecommunications Inst. of Tech &emsp; <b>&middot;</b> &emsp; UMass Amherst
+VinAI Research &emsp; <b>&middot;</b> &emsp; Posts & Telecommunications Inst. of Tech.
+
+MIT-IBM Watson AI Lab &emsp; <b>&middot;</b> &emsp; UMass Amherst
 <br><br>
 </div>
 
@@ -171,24 +171,12 @@ python3 vis_gui.py
 ```
 
 
-# Some important modules
-
-1\) The 2D segmenter: see `tools/grounding_2d.py`
-
-2\) The 3D segmenter: see `ISBNet/isbnet/model/isbnet.py`
-
-3\) The 2D-guide-3D Instance Proposal Module: see `open3dis/src/clustering/clustering.py` 
-
-4\) The Pointwise Feature Extraction: see `tools/refine_grouding_feat.py`
-
-5\) The overall process of generating 3D instances from both 2D proposals and 3D proposals: see `tools/generate_3d_inst.py`
-
 ## TODO
 Status | Name | Date
 :---:| --- | ---
 ✅| Open3DIS [project page](https://open3dis.github.io/) launched | 2024-12-17
-✅| Open3DIS accepted at [CVPR 2024](https://cvpr.thecvf.com/) | 2024-27-02
-✅| Release the Open3DIS repository | 2024-28-02
+✅| Open3DIS accepted at [CVPR 2024](https://cvpr.thecvf.com/) | 2024-02-27
+✅| Release the Open3DIS repository | 2024-02-28
 ⬜️| Release the source code
 ⬜️| Support Scannet200
 ⬜️| Support S3DIS
@@ -198,13 +186,15 @@ Misc
 ⬜️| Support Grounded SAM
 ⬜️| Support SAM
 ⬜️| Support Detic
+⬜️| Support SEEM
+⬜️| Superpoint extraction
 ⬜️| Provide pre-extract class-agnostic 3D proposals (3D backbone)
 ⬜️| Provide pre-extract class-agnostic 3D proposals (2D-3D)
 ⬜️| more...
 
 # Acknowledgments
 
-This repo is built upon [ISBNet](https://github.com/VinAIResearch/ISBNet), [OpenScene](https://github.com/pengsongyou/openscene)
+This repo is built upon [ISBNet](https://github.com/VinAIResearch/ISBNet), [OpenScene](https://github.com/pengsongyou/openscene).
 
 # Contacts
 
