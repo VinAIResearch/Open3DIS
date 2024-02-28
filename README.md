@@ -40,6 +40,21 @@ MIT-IBM Watson AI Lab &emsp; <b>&middot;</b> &emsp; UMass Amherst
 We introduce Open3DIS, a novel solution designed to tackle the problem of Open-Vocabulary Instance Segmentation within 3D scenes. Objects within 3D environments exhibit diverse shapes, scales, and colors, making precise instance-level identification a challenging task. Recent advancements in Open-Vocabulary scene understanding have made significant strides in this area by employing class-agnostic 3D instance proposal networks for object localization and learning queryable features for each 3D mask. While these methods produce high-quality instance proposals, they struggle with identifying small-scale and geometrically ambiguous objects. The key idea of our method is a new module that aggregates 2D instance masks across frames and maps them to geometrically coherent point cloud regions as high-quality object proposals addressing the above limitations. These are then combined with 3D class-agnostic instance proposals to include a wide range of objects in the real world. 
 To validate our approach, we conducted experiments on three prominent datasets, including Scannet200, S3DIS, and Replica, demonstrating significant performance gains in segmenting objects with diverse categories over the state-of-the-art approaches. 
 
+![overview](docs/model_open3dis.png)
+
+Details of the model architecture and experimental results can be found in [our paper](https://arxiv.org/abs/2312.10671):
+```bibtext
+@misc{nguyen2023open3dis,
+        title={Open3DIS: Open-vocabulary 3D Instance Segmentation with 2D Mask Guidance}, 
+        author={Phuc D. A. Nguyen and Tuan Duc Ngo and Chuang Gan and Evangelos Kalogerakis and Anh Tran and Cuong Pham and Khoi Nguyen},
+        year={2023},
+        eprint={2312.10671},
+        archivePrefix={arXiv},
+        primaryClass={cs.CV}
+}
+```
+**Please CITE** our paper whenever this repository is used to help produce published results or incorporated into other software.
+
 ## Features :mega:
 * State-of-the-art performance of Open-Vocabulary Instance Segmentation on ScanNet200, S3DIS, and Replica.
 * Support Open-Vocabulary queries: affordances, materials, color, shape, etc.
@@ -199,15 +214,3 @@ This repo is built upon [ISBNet](https://github.com/VinAIResearch/ISBNet), [Open
 # Contacts
 
 If you have any questions or suggestions about this repo, please feel free to contact me (phucnda@gmail.com).
-
-## Citation
-If you find our code or paper useful, please cite
-```bibtex
-@misc{nguyen2023open3dis,
-        title={Open3DIS: Open-vocabulary 3D Instance Segmentation with 2D Mask Guidance}, 
-        author={Phuc D. A. Nguyen and Tuan Duc Ngo and Chuang Gan and Evangelos Kalogerakis and Anh Tran and Cuong Pham and Khoi Nguyen},
-        year={2023},
-        eprint={2312.10671},
-        archivePrefix={arXiv},
-        primaryClass={cs.CV}
-}
