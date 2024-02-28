@@ -9,12 +9,11 @@
 
 ##### Table of contents
 1. [Installation guide](#Installation_guide)
-2. [Download pretrained foundation models](#Download_pretrained_foundation_models)
-3. [Data Preparation](#Data_Preparation) 
-4. [Run the code](#Run_the_code)
-5. [TODO](#TODO)
-6. [Acknowledgments](#Acknowledgments)
-7. [Contacts](#Contacts)
+2. [Data Preparation](#Data_Preparation) 
+3. [Run the code](#Run_the_code)
+4. [TODO](#TODO)
+5. [Acknowledgments](#Acknowledgments)
+6. [Contacts](#Contacts)
 
 # Open3DIS: Open-vocabulary 3D Instance Segmentation with 2D Mask Guidance [CVPR'24](https://cvpr.thecvf.com/)
 <a href="https://arxiv.org/abs/2312.10671"><img src="https://img.shields.io/badge/https%3A%2F%2Farxiv.org%2Fabs%2F2303.00246-arxiv-brightgreen"></a>
@@ -62,129 +61,18 @@ Details of the model architecture and experimental results can be found in [our 
 * Demo application for scene visualization
 
 
-# Installation guide
+## Installation guide :hammer:
 
-1\) Environment requirements
+Please refer to [installation guide](docs/INSTALL.md)
 
-The following installation guide supposes ``python=3.8``, ``pytorch=1.12.1``, ``cuda=11.3``, ``torch-scatter-2.1.0+pt112cu113``, and ``spconv-cu113==2.1.25``. You may change them according to your system.
+## Data Preparation :open_file_folder:
 
-Create conda and install core packages:
-```
-conda create -n Open3DIS python=3.8
-conda activate Open3DIS
-conda install pytorch==1.12.1 torchvision==0.13.1 cudatoolkit=11.3 -c pytorch
-pip3 install spconv-cu113==2.1.25
-```
-
-Install torch_scatter: the version must match your ``python`` version. It is recommended to visit [torch_scatter](https://data.pyg.org/whl/torch-1.12.1+cu113.html) and download the corresponding version.
-In our case, we use:
-```
-pip install torch_scatter-2.1.0+pt112cu113-cp38-cp38-linux_x86_64.whl
-```
-
-General case, might lead to Segmentaion Core Dump:
-```
-pip install torch-scatter==2.0.9 -f https://data.pyg.org/whl/torch-1.12.1+cu113.html
-```
-
-2\) Install Detectron2:  or you can refer to this link for cloning the [source](https://detectron2.readthedocs.io/en/latest/tutorials/install.html):
-
-```
-python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
-```
-
-3\) Install [GroundedSAM](https://github.com/IDEA-Research/Grounded-Segment-Anything), we modified the models to work with ours Open3DIS, so install the repo locally is needed: 
-```
-cd GroundingDINO/
-pip install -e .
-cd ../
-cd segment_anything
-pip install -e .
-cd ../
-```
-
-4\) Install additional libs for Segment Anything 3D and pointops:
-```
-cd SegmentAnything3D
-pip install scikit-image opencv-python open3d imageio plyfile
-cd libs/pointops
-python setup.py install
-cd ../../../
-```
-
-5\) Install [ISBNet](https://github.com/VinAIResearch/): 
-```
-cd ISBNet
-pip install -r requirements.txt
-# Install build requirement
-sudo apt-get install libsparsehash-dev
-# Setup PointNet operator for DyCo3D
-cd isbnet/pointnet2
-python3 setup.py bdist_wheel
-cd ./dist
-pip3 install <.whl>
-cd ../../../
-# Setup build environment
-python3 setup.py build_ext develop
-cd ../
-```
-
-6\) Finally, install other dependencies:
-```
-pip install -r requirements.txt
-```
-
-# Download pretrained foundation models
-
- Download the pretrained Grounding DINO and Segment Anything model:
-```
-mkdir -p pretrains/foundation_models
-cd pretrains/foundation_models
-
-wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
-wget https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth
-```
+Please refer to [data preparation guide](docs/DATA.md)
 
 
-# Data Preparation
-1\) Create data folder:
-```
-mkdir -p data/ScannetV2
-mkdir -p data/Scannet200
-mkdir -p data/replica
-mkdir -p data/S3DIS
-```
+## Run the code :running:
 
-updating...
-
-# Run the code
-
-1\) Extract class-agnostic 3D proposals and 3D feature map from ISBNet:
-
-```
-cd ISBNet/
-python3 tools/test.py configs/scannet200/isbnet_scannet200.yaml pretrains/scannet200/head_scannetv2_200_val.pth
-```
-
-2\) Extract 2D masks from RGB-D sequences:
-
-```
-sh scripts/grounding_2d.sh
-```
-
-3\) Generate open-vocab 3D instances:
-
-```
-sh scripts/generate_3d_inst.sh
-```
-
-4\) Run interactive visualization (required Open3D):
-
-```
-cd visualization
-python3 vis_gui.py
-```
-
+Please refer to [running the code guide](docs/RUN.md)
 
 ## TODO
 Status | Name | Date
@@ -207,10 +95,10 @@ Misc
 ⬜️| Provide pre-extract class-agnostic 3D proposals (2D-3D)
 ⬜️| more...
 
-# Acknowledgments
+## Acknowledgments
 
 This repo is built upon [ISBNet](https://github.com/VinAIResearch/ISBNet), [OpenScene](https://github.com/pengsongyou/openscene).
 
-# Contacts
+## Contacts
 
 If you have any questions or suggestions about this repo, please feel free to contact me (phucnda@gmail.com).
