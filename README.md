@@ -1,5 +1,33 @@
-# Open3DIS: Open-vocabulary 3D Instance Segmentation with 2D Mask Guidance
+	
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/open3dis-open-vocabulary-3d-instance/3d-open-vocabulary-instance-segmentation-on-1)](https://paperswithcode.com/sota/3d-open-vocabulary-instance-segmentation-on-1?p=open3dis-open-vocabulary-3d-instance)
+	
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/open3dis-open-vocabulary-3d-instance/3d-open-vocabulary-instance-segmentation-on-2)](https://paperswithcode.com/sota/3d-open-vocabulary-instance-segmentation-on-2?p=open3dis-open-vocabulary-3d-instance)
+	
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/open3dis-open-vocabulary-3d-instance/3d-open-vocabulary-instance-segmentation-on)](https://paperswithcode.com/sota/3d-open-vocabulary-instance-segmentation-on?p=open3dis-open-vocabulary-3d-instance)
+	
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/open3dis-open-vocabulary-3d-instance/3d-instance-segmentation-on-scannet200)](https://paperswithcode.com/sota/3d-instance-segmentation-on-scannet200?p=open3dis-open-vocabulary-3d-instance)
 
+##### Table of contents
+1. [Installation guide](#Installation_guide)
+2. [Download pretrained foundation models](#Download_pretrained_foundation_models)
+3. [Data Preparation](#Data_Preparation) 
+4. [Run the code](#Run_the_code)
+5. [Some important modules](#Some_important_modules)
+6. [TODO](#TODO)
+7. [Acknowledgments](#Acknowledgments)
+8. [Contacts](#Contacts)
+
+# Open3DIS: Open-vocabulary 3D Instance Segmentation with 2D Mask Guidance
+<a href="https://arxiv.org/abs/2312.10671"><img src="https://img.shields.io/badge/https%3A%2F%2Farxiv.org%2Fabs%2F2303.00246-arxiv-brightgreen"></a>
+
+[Phuc Nguyen](https://github.com/PhucNDA),
+[Tuan Duc Ngo](https://ngoductuanlhp.github.io/),
+[Chuang Gan](https://people.csail.mit.edu/ganchuang/)
+[Evangelos Kalogerakis](https://people.cs.umass.edu/~kalo/)
+[Anh Tran](https://scholar.google.com/citations?user=FYZ5ODQAAAAJ&hl=en),
+[Cuong Pham](https://sites.google.com/view/cuongpham/home),
+[Khoi Nguyen](https://www.khoinguyen.org/)<br>
+VinAI Research, MIT-IBM Watson AI Lab, Posts & Telecommunications Inst. of Tech. ,UMass Amherst
 > **Abstract**: 
 We introduce Open3DIS, a novel solution designed to tackle the problem of Open-Vocabulary Instance Segmentation within 3D scenes. Objects within 3D environments exhibit diverse shapes, scales, and colors, making precise instance-level identification a challenging task. Recent advancements in Open-Vocabulary scene understanding have made significant strides in this area by employing class-agnostic 3D instance proposal networks for object localization and learning queryable features for each 3D mask. While these methods produce high-quality instance proposals, they struggle with identifying small-scale and geometrically ambiguous objects. The key idea of our method is a new module that aggregates 2D instance masks across frames and maps them to geometrically coherent point cloud regions as high-quality object proposals addressing the above limitations. These are then combined with 3D class-agnostic instance proposals to include a wide range of objects in the real world. 
 To validate our approach, we conducted experiments on three prominent datasets, including Scannet200, S3DIS, and Replica, demonstrating significant performance gains in segmenting objects with diverse categories over the state-of-the-art approaches. 
@@ -7,8 +35,9 @@ To validate our approach, we conducted experiments on three prominent datasets, 
 ## Features :mega:
 * State-of-the-art performance of Open-Vocabulary Instance Segmentation on ScanNet200, S3DIS, and Replica.
 * Support Open-Vocabulary queries: affordances, materials, color, shape, etc.
-* Reproducibility code for both ScanNet200, S3DIS, and Replica datasets.
+* Reproducibility code for both ScanNet200, S3DIS, and Replica, Scannet++ datasets.
 * Demo application for scene visualization
+
 
 # Installation guide
 
@@ -103,39 +132,7 @@ mkdir -p data/replica
 mkdir -p data/S3DIS
 ```
 
-2\) Prepare the 2D data of ScanNet. We follow [OpenScene](https://github.com/pengsongyou/openscene) to process the RGB-D video sequences of ScanNet dataset. Put the data at `data/ScannetV2/ScannetV2_2D_5interval`.
-
-3\) Prepare the ground-truth instance masks of ScanNet200. We follow [ISBNet](https://github.com/VinAIResearch/ISBNet) to process the ground-truth instance masks and superpoints of ScanNet200. Put the data at `data/Scannet200/`.
-
 updating...
-
-```
-Open3DIS <-- (you are here)
-├── data
-│   ├── ScannetV2
-│   │   ├── ScannetV2_2D_5interval
-│   │   │    ├── train
-│   │   │    ├── val
-│   │   │    |    scene0011_00
-│   │   │    |    ├──color
-│   │   │    |    ├──depth
-│   │   │    |    ├──pose
-│   │   │    |    |  instrinsic.txt (image intrinsic)
-│   │   │    |    .... scenes
-│   │   │    | intrinsic_depth.txt (depth intrinsic)
-│   │   │    ├── original_ply_files # the _vh_clean_2.ply file from Scannet raw data.
-│   ├── Scannet200
-|   |   ├── train 
-│   │   ├── val
-│   │   ├── test
-│   │   ├── superpoints
-│   │   ├── isbnet_clsagnostic_scannet200 # class agnostic 3D proposals
-│   │   ├── dc_feat_scannet200 # 3D deep feature map from backbone of 3D proposals network
-├── pretrains
-|   ├── foundation_models
-|   |   ├── groundingdino_swint_ogc
-|   |   ├── sam_vit_h_4b8939.pth
-```
 
 # Run the code
 
@@ -177,3 +174,42 @@ python3 vis_gui.py
 4\) The Pointwise Feature Extraction: see `tools/refine_grouding_feat.py`
 
 5\) The overall process of generating 3D instances from both 2D proposals and 3D proposals: see `tools/generate_3d_inst.py`
+
+## TODO
+Status | Name | Date
+:---:| --- | ---
+✅| Open3DIS [project page](https://open3dis.github.io/) launched | 2024-12-17
+✅| Open3DIS accepted at [CVPR 2024](https://cvpr.thecvf.com/) | 2024-27-02
+✅| Release the Open3DIS repository | 2024-28-02
+⬜️| Release the source code
+⬜️| Support Scannet200
+⬜️| Support S3DIS
+⬜️| Support Replica
+⬜️| Support Scannet++
+Misc
+⬜️| Support Grounded SAM
+⬜️| Support SAM
+⬜️| Support Detic
+⬜️| Provide pre-extract class-agnostic 3D proposals (3D backbone)
+⬜️| Provide pre-extract class-agnostic 3D proposals (2D-3D)
+⬜️| more...
+
+# Acknowledgments
+
+This repo is built upon [ISBNet](https://github.com/VinAIResearch/ISBNet), [OpenScene](https://github.com/pengsongyou/openscene)
+
+# Contacts
+
+If you have any questions or suggestions about this repo, please feel free to contact me (phucnda@gmail.com).
+
+## Citation
+If you find our code or paper useful, please cite
+```bibtex
+@misc{nguyen2023open3dis,
+        title={Open3DIS: Open-vocabulary 3D Instance Segmentation with 2D Mask Guidance}, 
+        author={Phuc D. A. Nguyen and Tuan Duc Ngo and Chuang Gan and Evangelos Kalogerakis and Anh Tran and Cuong Pham and Khoi Nguyen},
+        year={2023},
+        eprint={2312.10671},
+        archivePrefix={arXiv},
+        primaryClass={cs.CV}
+}
