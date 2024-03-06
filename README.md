@@ -80,13 +80,13 @@ Status | Name | Date
 ✅| Open3DIS [project page](https://open3dis.github.io/) launched | 2024-12-17
 ✅| Open3DIS accepted at [CVPR 2024](https://cvpr.thecvf.com/) | 2024-02-27
 ✅| Release the Open3DIS repository | 2024-02-28
-⬜️| Release the source code
-⬜️| Support Scannet200
+✅| Release the source code | 2024-03-06
+✅| Support Scannet200 | 2024-03-06
 ⬜️| Support S3DIS
 ⬜️| Support Replica
 ⬜️| Support Scannet++
 Misc
-⬜️| Support Grounded SAM
+✅| Support Grounded SAM | 2024-03-06
 ⬜️| Support SAM
 ⬜️| Support Detic
 ⬜️| Support SEEM
