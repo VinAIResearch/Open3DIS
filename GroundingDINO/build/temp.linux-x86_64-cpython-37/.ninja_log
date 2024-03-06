@@ -1,0 +1,5 @@
+# ninja log v5
+0	414	1689049140675315452	/home/tinhn/3D/Grounded-Segment-Anything/GroundingDINO/build/temp.linux-x86_64-cpython-37/home/tinhn/3D/Grounded-Segment-Anything/GroundingDINO/groundingdino/models/GroundingDINO/csrc/cuda_version.o	4f71d8c23522ced7
+0	4497	1689049144751333060	/home/tinhn/3D/Grounded-Segment-Anything/GroundingDINO/build/temp.linux-x86_64-cpython-37/home/tinhn/3D/Grounded-Segment-Anything/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cpu.o	6e72d5250d5ad33c
+0	14639	1689049154891377019	/home/tinhn/3D/Grounded-Segment-Anything/GroundingDINO/build/temp.linux-x86_64-cpython-37/home/tinhn/3D/Grounded-Segment-Anything/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cuda.o	f0517a2b7e56414a
+0	14926	1689049155171378237	/home/tinhn/3D/Grounded-Segment-Anything/GroundingDINO/build/temp.linux-x86_64-cpython-37/home/tinhn/3D/Grounded-Segment-Anything/GroundingDINO/groundingdino/models/GroundingDINO/csrc/vision.o	18e414c67c042b51

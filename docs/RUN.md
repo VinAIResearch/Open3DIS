@@ -21,7 +21,4 @@ sh scripts/generate_3d_inst.sh
 
 4\) Run interactive visualization (required Open3D):
 
-```
-cd visualization
-python3 vis_gui.py
-```
+...updating

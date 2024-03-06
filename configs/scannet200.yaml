@@ -1,0 +1,65 @@
+foundation_model:
+  grounded_config_file: './GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py'
+  grounded_checkpoint: '../groundingdino_swint_ogc.pth'
+  sam_checkpoint: '../sam_vit_h_4b8939.pth'
+  clip_model: 'ViT-L-14-336'
+  clip_checkpoint: '../Open3DIS/pretrains/foundation_models/ViT-L-14-336px.pt' #openai
+  device: 'cuda'
+  box_threshold: 0.4
+  text_threshold: 0.4
+  clip_dim: 768
+
+
+grounded_feature:
+  granularity: 0.8 # only for SAM AutoMaskGen
+
+data:
+  dataset_name: 'scannet200'
+  split_path: './open3dis/dataset/scannetv2_val.txt'
+  datapath: '../Dataset/ScannetV2/ScannetV2_2D_5interval/trainval' # RGB-D + pose path
+  gt_pth: '../Dataset/Scannet200/val' # gt path
+  original_ply: '../Dataset/ScannetV2/original_ply_files' # raw pcl
+  spp_path: '../Dataset/Scannet200/superpoints' # spp path
+  cls_agnostic_3d_proposals_path: '../Dataset/Scannet200/isbnet_clsagnostic_scannet200' # cls agnostic 3D proposals
+  dc_features_path: '../Dataset/Scannet200/dc_feat_scannet200' # spp feature path
+  img_dim: [640, 480]
+  rgb_img_dim: [1296, 968]
+  cut_num_pixel_boundary: 10
+  img_interval: 2
+  num_classes: 198
+
+cluster:
+  visi: 0.9
+  simi: 0.9
+  point_visi: 0.2
+  valid_points: 50
+
+refine_grounding:
+  top_k: 5
+
+final_instance:
+  iou_overlap: 0.9
+  top_k: 300
+  scale_semantic_score: 300.0
+
+exp:
+  exp_name: "version_test"
+  mask2d_output: 'maskGdino' # 2D mask + pc features
+  grounded_feat_output: 'grounded_feat' # first stage feature
+  refined_grounded_feat_output: 'refined_grounded_feat' # second stage feature
+  clustering_3d_output: 'hier_agglo' # 2Dlift path
+  final_output: 'final_result_hier_agglo' 
+  save_dir: '../exp'
+
+proposals:
+  p2d: True # 2D branch
+  p3d: True # 3D branch
+  agnostic: False # returning class-agnostic masks (without class + scores)
+  refined: True # feature branch, setting this True uses refined feature, else uses feature from 2D branch
+                # refer to VinAI-3DIS solution (two-stage feature): https://arxiv.org/pdf/2402.15321.pdf 
+
+evaluate:
+  evalvocab: True # AP evaluation for OV-3DIS
+  evalagnostic: False # AP evaluation for agnostic 3DIS
+
+fp16: True

@@ -1,0 +1,5 @@
+# ninja log v5
+2	3816	1693850804000000000	/home/phucnda/open3d/CVPR24/CVPR/GroundingDINO/build/temp.linux-x86_64-cpython-39/home/phucnda/open3d/CVPR24/CVPR/GroundingDINO/groundingdino/models/GroundingDINO/csrc/cuda_version.o	bbdcebb34293a8d
+1	7199	1693850807000000000	/home/phucnda/open3d/CVPR24/CVPR/GroundingDINO/build/temp.linux-x86_64-cpython-39/home/phucnda/open3d/CVPR24/CVPR/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cpu.o	2cd98be9cd3b81b1
+3	30320	1693850831000000000	/home/phucnda/open3d/CVPR24/CVPR/GroundingDINO/build/temp.linux-x86_64-cpython-39/home/phucnda/open3d/CVPR24/CVPR/GroundingDINO/groundingdino/models/GroundingDINO/csrc/vision.o	c659ab5025db3bfe
+2	96990	1693850897000000000	/home/phucnda/open3d/CVPR24/CVPR/GroundingDINO/build/temp.linux-x86_64-cpython-39/home/phucnda/open3d/CVPR24/CVPR/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cuda.o	8a429903c49a0031
