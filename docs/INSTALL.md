@@ -31,17 +31,19 @@ python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 
 3\) Install [GroundedSAM](https://github.com/IDEA-Research/Grounded-Segment-Anything), we modified the models to work with ours Open3DIS, so install the repo locally is needed: 
 ```
+cd segmenter2d/
 cd GroundingDINO/
 pip install -e .
 cd ../
 cd segment_anything
 pip install -e .
-cd ../
+cd ../../
 ```
 
 4\) Install [ISBNet](https://github.com/VinAIResearch/): 
 ```
-cd ISBNet
+cd segmenter3d/
+cd ISBNet/
 pip install -r requirements.txt
 # Install build requirement
 sudo apt-get install libsparsehash-dev
@@ -53,7 +55,7 @@ pip3 install <.whl>
 cd ../../../
 # Setup build environment
 python3 setup.py build_ext develop
-cd ../
+cd ../../
 ```
 
 5\) Finally, install other dependencies:

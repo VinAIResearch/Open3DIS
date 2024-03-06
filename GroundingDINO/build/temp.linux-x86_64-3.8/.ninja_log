@@ -1,5 +1,0 @@
-# ninja log v5
-2	1900	1709722323000000000	/root/CVPR24/CVPR/GroundingDINO/build/temp.linux-x86_64-3.8/root/CVPR24/CVPR/GroundingDINO/groundingdino/models/GroundingDINO/csrc/cuda_version.o	bfead5c6a592ffe1
-1	5043	1709722326000000000	/root/CVPR24/CVPR/GroundingDINO/build/temp.linux-x86_64-3.8/root/CVPR24/CVPR/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cpu.o	19e58c23fde404a6
-1	17098	1709722338000000000	/root/CVPR24/CVPR/GroundingDINO/build/temp.linux-x86_64-3.8/root/CVPR24/CVPR/GroundingDINO/groundingdino/models/GroundingDINO/csrc/vision.o	da7bc5ec82da6cf0
-2	53267	1709722374000000000	/root/CVPR24/CVPR/GroundingDINO/build/temp.linux-x86_64-3.8/root/CVPR24/CVPR/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cuda.o	8adc5cc9d557ae6d

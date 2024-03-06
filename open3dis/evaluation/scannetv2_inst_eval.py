@@ -1,14 +1,21 @@
-import numpy as np
 import multiprocessing as mp
+import os
 from copy import deepcopy
+
+import numpy as np
+from open3dis.dataset.scannet200 import (
+    BASE_CLASSES_SCANNET200,
+    COMMON_CATS_SCANNET_200,
+    HEAD_CATS_SCANNET_200,
+    INSTANCE_CAT_SCANNET_200,
+    NOVEL_CLASSES_SCANNET200,
+    TAIL_CATS_SCANNET_200,
+    VALID_CLASS_IDS_200_VALIDATION,
+)
+from open3dis.evaluation.instance_eval_util import get_instances
+
 # from ..util import rle_decode
 from tqdm import tqdm, trange
-import os
-from open3dis.evaluation.instance_eval_util import get_instances
-from open3dis.dataset.scannet200 import \
-INSTANCE_CAT_SCANNET_200, HEAD_CATS_SCANNET_200, COMMON_CATS_SCANNET_200, TAIL_CATS_SCANNET_200,\
-VALID_CLASS_IDS_200_VALIDATION, BASE_CLASSES_SCANNET200, NOVEL_CLASSES_SCANNET200
-
 
 
 class ScanNetEval(object):
@@ -88,7 +95,7 @@ class ScanNetEval(object):
                         cur_score = np.ones(len(gt_instances)) * (-float("inf"))
                         cur_match = np.zeros(len(gt_instances), dtype=np.bool)
                         # collect matches
-                        for (gti, gt) in enumerate(gt_instances):
+                        for gti, gt in enumerate(gt_instances):
                             found_match = False
                             for pred in gt["matched_pred"]:
                                 # greedy assignments
@@ -232,7 +239,7 @@ class ScanNetEval(object):
         avg_dict["all_rc_50%"] = np.nanmean(rcs[d_inf, :, o50])
         avg_dict["all_rc_25%"] = np.nanmean(rcs[d_inf, :, o25])
         avg_dict["classes"] = {}
-        for (li, label_name) in enumerate(self.eval_class_labels):
+        for li, label_name in enumerate(self.eval_class_labels):
             avg_dict["classes"][label_name] = {}
             avg_dict["classes"][label_name]["ap"] = np.average(aps[d_inf, li, oAllBut25])
             avg_dict["classes"][label_name]["ap50%"] = np.average(aps[d_inf, li, o50])
@@ -301,7 +308,7 @@ class ScanNetEval(object):
                 label_name = self.eval_class_labels[0]  # class agnostic label
             conf = pred["conf"]
             pred_mask = pred["pred_mask"]
-            # pred_mask can be np.array or rle dict                
+            # pred_mask can be np.array or rle dict
             assert pred_mask.shape[0] == gts.shape[0]
 
             # convert to binary
@@ -321,7 +328,7 @@ class ScanNetEval(object):
             # matched gt instances
             matched_gt = []
             # go thru all gt instances with matching label
-            for (gt_num, gt_inst) in enumerate(gt2pred[label_name]):
+            for gt_num, gt_inst in enumerate(gt2pred[label_name]):
                 intersection = np.count_nonzero(np.logical_and(gts == gt_inst["instance_id"], pred_mask))
                 if intersection > 0:
                     gt_copy = gt_inst.copy()
@@ -405,7 +412,7 @@ class ScanNetEval(object):
             # matched gt instances
             matched_gt = []
             # go thru all gt instances with matching label
-            for (gt_num, gt_inst) in enumerate(gt2pred[label_name]):
+            for gt_num, gt_inst in enumerate(gt2pred[label_name]):
                 gt_box_min = gt_inst["box"][:3]
                 gt_box_max = gt_inst["box"][3:]
 
@@ -453,7 +460,7 @@ class ScanNetEval(object):
         print(line)
         print("#" * lineLen)
 
-        for (li, label_name) in enumerate(self.eval_class_labels):
+        for li, label_name in enumerate(self.eval_class_labels):
             ap_avg = avgs["classes"][label_name]["ap"]
             ap_50o = avgs["classes"][label_name]["ap50%"]
             ap_25o = avgs["classes"][label_name]["ap25%"]
@@ -498,7 +505,7 @@ class ScanNetEval(object):
                 ap25 = avgs["classes"][class_name]["ap25%"]
                 f.write(_SPLITTER.join([str(x) for x in [class_name, ap, ap50, ap25]]) + "\n")
 
-    def evaluate(self, pred_list, gt_sem_list, gt_ins_list, exp_path='./'):
+    def evaluate(self, pred_list, gt_sem_list, gt_ins_list, exp_path="./"):
         """
         Args:
             pred_list:
@@ -515,8 +522,8 @@ class ScanNetEval(object):
         # pool.close()
         # pool.join()
         results = []
-        for i in trange (len(gt_sem_list)):
-            results.append((self.assign_instances_for_scan(pred_list[i], gt_sem_list[i], gt_ins_list[i])))    
+        for i in trange(len(gt_sem_list)):
+            results.append((self.assign_instances_for_scan(pred_list[i], gt_sem_list[i], gt_ins_list[i])))
         matches = {}
         for i, (gt2pred, pred2gt) in enumerate(results):
             matches_key = f"gt_{i}"
@@ -527,7 +534,7 @@ class ScanNetEval(object):
         avgs = self.compute_averages(ap_scores, rc_scores)
 
         # print
-        self.write_result_file(avgs, os.path.join(exp_path, 'result.txt'))
+        self.write_result_file(avgs, os.path.join(exp_path, "result.txt"))
 
         if self.dataset_name == "scannet200":
             self.print_ap_scannet200(avgs)
@@ -570,7 +577,7 @@ class ScanNetEval(object):
         print("ScanNet200 Evaluation")
         head_results, tail_results, common_results = [], [], []
         base_results, novel_results = [], []
-        for (li, class_name) in enumerate(self.eval_class_labels):
+        for li, class_name in enumerate(self.eval_class_labels):
             # class_name = ScanNet200Dataset.CLASSES[i]
             ap_avg = avgs["classes"][class_name]["ap"]
             ap_50o = avgs["classes"][class_name]["ap50%"]
@@ -588,7 +595,7 @@ class ScanNetEval(object):
                 tail_results.append(np.array([ap_avg, ap_50o, ap_25o]))
             else:
                 raise ValueError("Unknown class name!!!")
-            
+
             if class_name in BASE_CLASSES_SCANNET200:
                 base_results.append(np.array([ap_avg, ap_50o, ap_25o]))
             elif class_name in NOVEL_CLASSES_SCANNET200:
@@ -608,7 +615,6 @@ class ScanNetEval(object):
         mean_common_results = np.nanmean(common_results, axis=0)
         mean_head_results = np.nanmean(head_results, axis=0)
         overall_ap_results = np.nanmean(np.vstack((head_results, common_results, tail_results)), axis=0)
-
 
         mean_base_results = np.nanmean(base_results, axis=0)
         mean_novel_results = np.nanmean(novel_results, axis=0)

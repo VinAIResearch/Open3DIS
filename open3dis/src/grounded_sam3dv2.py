@@ -1,13 +1,13 @@
-
-import numpy as np
-import torch
-import matplotlib.pyplot as plt
-
 # Grounding DINO
 import GroundingDINO.groundingdino.datasets.transforms as T
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from GroundingDINO.groundingdino.models import build_model
 from GroundingDINO.groundingdino.util.slconfig import SLConfig
 from GroundingDINO.groundingdino.util.utils import clean_state_dict, get_phrases_from_posmap
+
+
 ##############################################
 
 
@@ -42,17 +42,13 @@ def get_grounding_output(model, image, caption, box_threshold, text_threshold, w
         caption = caption + "."
     model = model.to(device)
     image = image.to(device)
-    
 
     with torch.no_grad():
         outputs = model(image[None], captions=[caption])
 
-        
-    
     # probas = outputs["pred_logits"].softmax(-1)[0, :, :-1]
     logits = outputs["pred_logits"].sigmoid()[0]  # (nqueries, 256)
     boxes = outputs["pred_boxes"][0]  # (nqueries, 4)
-    
 
     # filter output
     logits_filt = logits.clone()
@@ -63,9 +59,3 @@ def get_grounding_output(model, image, caption, box_threshold, text_threshold, w
     # logits_filt.shape[0]
 
     return boxes_filt, logits_filt.max(dim=1)[0]
-
-
-
-
-    
-

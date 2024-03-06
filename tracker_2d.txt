@@ -1,2 +1,0 @@
-Processed Scenes .
-scene0011_00.pth

@@ -1,23 +1,23 @@
-import os
-import json
-import yaml
-import torch
-import time
 import argparse
-import numpy as np
-from PIL import Image
-from munch import Munch
-from tqdm import tqdm, trange
-import matplotlib.pyplot as plt
-from torch.nn import functional as F
+import json
+import os
+import time
 
+import matplotlib.pyplot as plt
+import numpy as np
 import open_clip
-from open3dis.src.clustering.clustering import process_hierarchical_agglomerative
+import torch
+import yaml
+from munch import Munch
 from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200
 from open3dis.dataset.scannet_loader import ScanNetReader, scaling_mapping
-from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200
+from open3dis.src.clustering.clustering import process_hierarchical_agglomerative
 from open3dis.src.fusion_util import NMS_cuda
 from open3dis.src.mapper import PointCloudToImageMapper
+from PIL import Image
+from torch.nn import functional as F
+from tqdm import tqdm, trange
+
 
 def rle_encode_gpu_batch(masks):
     """
@@ -65,17 +65,20 @@ def rle_decode(rle):
         mask[lo:hi] = 1
     return mask
 
-def refine_grounding_features(scene_id, cfg, clip_adapter, clip_preprocess, use_2d_proposals=False, use_3d_proposals=True):
-    '''
-       Cascade Aggregator
-       Refine CLIP pointwise feature from multi scale image crop from 3D proposals 
-    '''
+
+def refine_grounding_features(
+    scene_id, cfg, clip_adapter, clip_preprocess, use_2d_proposals=False, use_3d_proposals=True
+):
+    """
+    Cascade Aggregator
+    Refine CLIP pointwise feature from multi scale image crop from 3D proposals
+    """
 
     exp_path = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name)
-    cluster_dict_path = os.path.join(exp_path, cfg.exp.clustering_3d_output, f'{scene_id}.pth')
+    cluster_dict_path = os.path.join(exp_path, cfg.exp.clustering_3d_output, f"{scene_id}.pth")
 
-    pc_features_path = os.path.join(exp_path, cfg.exp.grounded_feat_output, f'{scene_id}.pth')
-    pc_refined_features_path = os.path.join(exp_path, cfg.exp.refined_grounded_feat_output, f'{scene_id}.pth')
+    pc_features_path = os.path.join(exp_path, cfg.exp.grounded_feat_output, f"{scene_id}.pth")
+    pc_refined_features_path = os.path.join(exp_path, cfg.exp.refined_grounded_feat_output, f"{scene_id}.pth")
 
     ### Set up dataloader
     scene_dir = os.path.join(cfg.data.datapath, scene_id)
@@ -83,36 +86,34 @@ def refine_grounding_features(scene_id, cfg, clip_adapter, clip_preprocess, use_
 
     img_dim = cfg.data.img_dim
     pointcloud_mapper = PointCloudToImageMapper(
-        image_dim=img_dim, 
-        intrinsics = scannet_loader.global_intrinsic,
-        cut_bound=cfg.data.cut_num_pixel_boundary
+        image_dim=img_dim, intrinsics=scannet_loader.global_intrinsic, cut_bound=cfg.data.cut_num_pixel_boundary
     )
-    
+
     data_2d = torch.load(cluster_dict_path)
-    if isinstance(data_2d['ins'][0], dict):
-        instance_2d = torch.stack([torch.from_numpy(rle_decode(ins)) for ins in data_2d['ins']], dim=0).cuda()
+    if isinstance(data_2d["ins"][0], dict):
+        instance_2d = torch.stack([torch.from_numpy(rle_decode(ins)) for ins in data_2d["ins"]], dim=0).cuda()
     else:
-        instance_2d = data_2d['ins'].cuda()
-    
-    confidence_2d = torch.tensor(data_2d['conf']).cuda()
+        instance_2d = data_2d["ins"].cuda()
+
+    confidence_2d = torch.tensor(data_2d["conf"]).cuda()
 
     ########### Proposal branch selection ###########
     if use_3d_proposals:
-        agnostic3d_path = os.path.join(cfg.data.cls_agnostic_3d_proposals_path, f'{scene_id}.pth')
+        agnostic3d_path = os.path.join(cfg.data.cls_agnostic_3d_proposals_path, f"{scene_id}.pth")
         agnostic3d_data = torch.load(agnostic3d_path)
-        instance_3d_encoded = np.array(agnostic3d_data['ins'])
-        confidence_3d = torch.tensor(agnostic3d_data['conf']).cuda()
+        instance_3d_encoded = np.array(agnostic3d_data["ins"])
+        confidence_3d = torch.tensor(agnostic3d_data["conf"]).cuda()
 
         n_instance_3d = instance_3d_encoded.shape[0]
 
         if isinstance(instance_3d_encoded[0], dict):
-            instance_3d = torch.stack([torch.from_numpy(rle_decode(in3d)) for in3d in instance_3d_encoded], dim=0).cuda()
+            instance_3d = torch.stack(
+                [torch.from_numpy(rle_decode(in3d)) for in3d in instance_3d_encoded], dim=0
+            ).cuda()
         else:
             instance_3d = torch.stack([torch.tensor(in3d) for in3d in instance_3d_encoded], dim=0).cuda()
 
-        intersection = torch.einsum(
-            "nc,mc->nm", instance_2d.float(), instance_3d.float()
-        )
+        intersection = torch.einsum("nc,mc->nm", instance_2d.float(), instance_3d.float())
         # print(intersection.shape, instance.shape, )
         ious = intersection / (instance_2d.sum(1)[:, None] + instance_3d.sum(1)[None, :] - intersection)
         ious_max = torch.max(ious, dim=1)[0]
@@ -147,9 +148,9 @@ def refine_grounding_features(scene_id, cfg, clip_adapter, clip_preprocess, use_
 
     # Use 2D only can load feature obtained from 2D masks else init empty features
     if use_2d_proposals == True:
-        pc_features = torch.load(pc_features_path)['feat'].cuda().half()
+        pc_features = torch.load(pc_features_path)["feat"].cuda().half()
     else:
-        pc_features = torch.zeros_like(torch.load(pc_features_path)['feat'].cuda().half()).cuda()
+        pc_features = torch.zeros_like(torch.load(pc_features_path)["feat"].cuda().half()).cuda()
 
     cropped_regions = []
     batch_index = []
@@ -166,20 +167,22 @@ def refine_grounding_features(scene_id, cfg, clip_adapter, clip_preprocess, use_
 
     for i in trange(0, len(scannet_loader), interval):
         frame = scannet_loader[i]
-        frame_id = frame['frame_id']  # str
+        frame_id = frame["frame_id"]  # str
 
-        pose = scannet_loader.read_pose(frame['pose_path'])
-        depth = scannet_loader.read_depth(frame['depth_path'])
-        rgb_img = scannet_loader.read_image(frame['image_path'])
+        pose = scannet_loader.read_pose(frame["pose_path"])
+        depth = scannet_loader.read_depth(frame["depth_path"])
+        rgb_img = scannet_loader.read_image(frame["image_path"])
         rgb_img_dim = rgb_img.shape[:2]
 
         mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
         mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
-        if 'scannet' in cfg.data.dataset_name: # Scaling in Scannet only
-            new_mapping = scaling_mapping(torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1])
-            mapping[:, 1:4] = torch.cat((new_mapping,mapping[:,3].unsqueeze(1)),dim=1)        
+        if "scannet" in cfg.data.dataset_name:  # Scaling in Scannet only
+            new_mapping = scaling_mapping(
+                torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
+            )
+            mapping[:, 1:4] = torch.cat((new_mapping, mapping[:, 3].unsqueeze(1)), dim=1)
 
-        if mapping[:, 3].sum() < 100: # no points corresponds to this image, skip sure
+        if mapping[:, 3].sum() < 100:  # no points corresponds to this image, skip sure
             continue
 
         mappings.append(mapping)
@@ -190,47 +193,49 @@ def refine_grounding_features(scene_id, cfg, clip_adapter, clip_preprocess, use_
 
     for inst in trange(n_instance):
         # Obtaining top-k views
-        conds = (mappings[..., 3] == 1) & (instance[inst]==1)[None].expand(n_views,-1) # n_view, n_points
+        conds = (mappings[..., 3] == 1) & (instance[inst] == 1)[None].expand(n_views, -1)  # n_view, n_points
         count_views = conds.sum(1)
-        valid_count_views = (count_views > 20)
+        valid_count_views = count_views > 20
         valid_inds = torch.nonzero(valid_count_views).view(-1)
         if len(valid_inds) == 0:
             continue
-        topk_counts, topk_views = torch.topk(count_views[valid_inds], k=min(cfg.refine_grounding.top_k, len(valid_inds)), largest=True)
+        topk_counts, topk_views = torch.topk(
+            count_views[valid_inds], k=min(cfg.refine_grounding.top_k, len(valid_inds)), largest=True
+        )
         topk_views = valid_inds[topk_views]
-        
+
         # Multiscale image crop from topk views
-        for v in topk_views:            
+        for v in topk_views:
             point_inds_ = torch.nonzero((mappings[v][:, 3] == 1) & (instance[inst] == 1)).view(-1)
-            projected_points = torch.tensor(mappings[v][point_inds_][:,[1,2]]).cuda()
+            projected_points = torch.tensor(mappings[v][point_inds_][:, [1, 2]]).cuda()
             # Calculate the bounding rectangle
             mi = torch.min(projected_points, axis=0)
             ma = torch.max(projected_points, axis=0)
             x1, y1 = mi[0][0].item(), mi[0][1].item()
             x2, y2 = ma[0][0].item(), ma[0][1].item()
 
-            if x2-x1 == 0 or y2-y1 == 0:
+            if x2 - x1 == 0 or y2 - y1 == 0:
                 continue
             # Multiscale clip crop follows OpenMask3D
-            kexp=0.2
+            kexp = 0.2
             H, W = images[v].shape[0], images[v].shape[1]
             ## 3 level cropping
-            for round in range (3):
+            for round in range(3):
                 cropped_image = images[v][x1:x2, y1:y2, :]
-                if cropped_image.shape[0] == 0 or cropped_image.shape[1]==0:
+                if cropped_image.shape[0] == 0 or cropped_image.shape[1] == 0:
                     continue
                 cropped_regions.append(clip_preprocess(Image.fromarray(cropped_image)))
                 batch_index.append(point_inds_)
                 confidence_feat.append(confidence[inst])
                 inst_inds.append(inst)
-                tmpx1 = int(max(0, x1-(x2-x1)*kexp*round))
-                tmpy1 = int(max(0, y1-(y2-y1)*kexp*round))
-                tmpx2 = int(min(H-1, x2+(x2-x1)*kexp*round))
-                tmpy2 = int(min(W-1, y2+(y2-y1)*kexp*round))
+                tmpx1 = int(max(0, x1 - (x2 - x1) * kexp * round))
+                tmpy1 = int(max(0, y1 - (y2 - y1) * kexp * round))
+                tmpx2 = int(min(H - 1, x2 + (x2 - x1) * kexp * round))
+                tmpy2 = int(min(W - 1, y2 + (y2 - y1) * kexp * round))
                 x1, y1, x2, y2 = tmpx1, tmpy1, tmpx2, tmpy2
-            
-    # Batch forwarding CLIP features    
-    if len(cropped_regions)!=0:
+
+    # Batch forwarding CLIP features
+    if len(cropped_regions) != 0:
         crops = torch.stack(cropped_regions).cuda()
         img_batches = torch.split(crops, 64, dim=0)
         image_features = []
@@ -240,9 +245,9 @@ def refine_grounding_features(scene_id, cfg, clip_adapter, clip_preprocess, use_
                 image_feat /= image_feat.norm(dim=-1, keepdim=True)
                 image_features.append(image_feat)
         image_features = torch.cat(image_features, dim=0)
-    
+
     # Point cloud features accumulation
-    print('Cascade-Averaging features')
+    print("Cascade-Averaging features")
     for count in trange(len(cropped_regions)):
         pc_features[batch_index[count]] += image_features[count] * confidence_feat[count]
         inst_features[inst_inds[count]] += image_features[count] * confidence_feat[count]
@@ -251,31 +256,36 @@ def refine_grounding_features(scene_id, cfg, clip_adapter, clip_preprocess, use_
     inst_features = F.normalize(inst_features, dim=1, p=2).half().cpu()
     return refined_pc_features, inst_features
 
-if __name__=='__main__':
+
+if __name__ == "__main__":
     # Multiprocess logger
-    if os.path.exists('tracker_refine.txt') == False:
-        with open('tracker_refine.txt', 'w') as file:
-            file.write('Processed Scenes .\n')         
-    cfg = Munch.fromDict(yaml.safe_load(open('./configs/scannet200.yaml', "r").read()))
-    
+    if os.path.exists("tracker_refine.txt") == False:
+        with open("tracker_refine.txt", "w") as file:
+            file.write("Processed Scenes .\n")
+    cfg = Munch.fromDict(yaml.safe_load(open("./configs/scannet200.yaml", "r").read()))
+
     # Scannet split path
-    with open(cfg.data.split_path, 'r') as file:
-        scene_ids = sorted([line.rstrip('\n') for line in file])
+    with open(cfg.data.split_path, "r") as file:
+        scene_ids = sorted([line.rstrip("\n") for line in file])
 
     # Fondation model loader
-    clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint)
+    clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(
+        cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint
+    )
     clip_adapter = clip_adapter.cuda()
 
     # Directory Init
-    save_dir_refined_grounded_feat = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.refined_grounded_feat_output)
+    save_dir_refined_grounded_feat = os.path.join(
+        cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.refined_grounded_feat_output
+    )
     os.makedirs(save_dir_refined_grounded_feat, exist_ok=True)
 
     with torch.cuda.amp.autocast(enabled=cfg.fp16):
         for scene_id in tqdm(scene_ids):
             # Tracker
             done = False
-            path = scene_id + '.pth'
-            with open('tracker_refine.txt', 'r') as file:
+            path = scene_id + ".pth"
+            with open("tracker_refine.txt", "r") as file:
                 lines = file.readlines()
                 lines = [line.strip() for line in lines]
                 for line in lines:
@@ -283,20 +293,26 @@ if __name__=='__main__':
                         done = True
                         break
             if done == True:
-                print('existed ' + path)
+                print("existed " + path)
                 continue
             # Write and append each line
-            with open('tracker_refine.txt', 'a') as file:
-                file.write(path +'\n')
+            with open("tracker_refine.txt", "a") as file:
+                file.write(path + "\n")
             print("Process", scene_id)
 
-            refined_pc_features, inst_features = refine_grounding_features(scene_id, cfg, clip_adapter, clip_preprocess, use_2d_proposals=cfg.proposals.p2d, use_3d_proposals=cfg.proposals.p3d)
+            refined_pc_features, inst_features = refine_grounding_features(
+                scene_id,
+                cfg,
+                clip_adapter,
+                clip_preprocess,
+                use_2d_proposals=cfg.proposals.p2d,
+                use_3d_proposals=cfg.proposals.p3d,
+            )
 
             # Saving refined features
             torch.save(
-                {"feat": refined_pc_features.half(), 
-                 "inst_feat": inst_features.half()
-                 }, 
-                 os.path.join(save_dir_refined_grounded_feat, f"{scene_id}.pth"))
+                {"feat": refined_pc_features.half(), "inst_feat": inst_features.half()},
+                os.path.join(save_dir_refined_grounded_feat, f"{scene_id}.pth"),
+            )
 
             torch.cuda.empty_cache()

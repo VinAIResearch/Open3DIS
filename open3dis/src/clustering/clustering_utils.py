@@ -1,37 +1,31 @@
-import os
+import argparse
+import copy
+import glob
 import importlib
+import json
+import operator
+import os
 import pickle
 import sys
-import copy
-import json
-import glob
-import argparse
-import operator
-from time import perf_counter
-from functools import reduce
 from collections import deque
+from functools import reduce
 from pathlib import Path
-
-from typing import Union, Dict
-import pickle
+from time import perf_counter
+from typing import Dict, Union
 
 import numpy as np
 import numpy.linalg as la
-import torch
 import pycocotools.mask
-from numba import njit
-
-import numpy as np
-import numpy.linalg as la
 import torch
 import torch.nn.functional as F
-from tqdm import tqdm
-from numba import njit
-from scipy.optimize import linear_sum_assignment
-from torchmetrics.functional import pairwise_cosine_similarity
-from sklearn.cluster import DBSCAN
 import torch_scatter
 from detectron2.structures import Instances
+from numba import njit
+from scipy.optimize import linear_sum_assignment
+from sklearn.cluster import DBSCAN
+from torchmetrics.functional import pairwise_cosine_similarity
+from tqdm import tqdm
+
 
 def custom_scatter_mean(input_feats, indices, dim=0, pool=True, output_type=None):
     if not pool:
@@ -48,6 +42,7 @@ def custom_scatter_mean(input_feats, indices, dim=0, pool=True, output_type=None
 
     return out_feats
 
+
 def resolve_overlapping_3d_masks(pred_masks, pred_scores, score_thresh=0.5, device="cuda:0"):
     M, N = pred_masks.shape
     # panoptic_masks = torch.clone(pred_masks)
@@ -56,7 +51,6 @@ def resolve_overlapping_3d_masks(pred_masks, pred_scores, score_thresh=0.5, devi
 
     panoptic_masks = torch.argmax(scores, dim=0)
     return panoptic_masks
-
 
 
 def resolve_overlapping_masks(pred_masks, pred_scores, score_thresh=0.5, device="cuda:0"):
@@ -69,13 +63,14 @@ def resolve_overlapping_masks(pred_masks, pred_scores, score_thresh=0.5, device=
     panoptic_masks = torch.zeros((M, H, W), dtype=torch.bool, device=device)
     panoptic_masks[indices[:, 0], indices[:, 1], indices[:, 2]] = True
     panoptic_masks[scores > score_thresh] = True  # if prediction score is high enough, keep the mask anyway
-    
+
     # return panoptic_masks
-    
+
     return panoptic_masks.detach().cpu().numpy()
 
+
 def read_detectron_instances(filepath: Union[str, os.PathLike], rle_to_mask=True) -> Instances:
-    with open(filepath, 'rb') as fp:
+    with open(filepath, "rb") as fp:
         instances = pickle.load(fp)
         if rle_to_mask:
             if instances.pred_masks_rle:
@@ -85,7 +80,8 @@ def read_detectron_instances(filepath: Union[str, os.PathLike], rle_to_mask=True
                 instances.pred_masks = torch.empty((0, 0, 0), dtype=torch.bool)
     return instances
 
-def compute_projected_pts_torch(pts, cam_intr, device='cuda'):
+
+def compute_projected_pts_torch(pts, cam_intr, device="cuda"):
     N = pts.shape[0]
     projected_pts = torch.zeros((N, 2), dtype=torch.int64, device=device)
     fx, fy = cam_intr[0, 0], cam_intr[1, 1]
@@ -111,16 +107,25 @@ def compute_projected_pts(pts, cam_intr):
         projected_pts[i, 1] = y
     return projected_pts
 
-def compute_visibility_mask_torch(pts, projected_pts, depth_im, depth_thresh=0.005, device='cuda'):
+
+def compute_visibility_mask_torch(pts, projected_pts, depth_im, depth_thresh=0.005, device="cuda"):
     im_h, im_w = depth_im.shape
     visibility_mask = torch.zeros(projected_pts.shape[0], dtype=torch.bool, device=device)
 
     z = pts[:, 2]
-    x, y = projected_pts[:,0], projected_pts[:,1]
+    x, y = projected_pts[:, 0], projected_pts[:, 1]
 
-    cond = (x >= 0) & (y < im_w) & (y >= 0) & (y < im_h) & (depth_im[y, x] > 0) & (torch.abs(z - depth_im[y, x]) < depth_thresh)
+    cond = (
+        (x >= 0)
+        & (y < im_w)
+        & (y >= 0)
+        & (y < im_h)
+        & (depth_im[y, x] > 0)
+        & (torch.abs(z - depth_im[y, x]) < depth_thresh)
+    )
     visibility_mask[cond] = 1
     return visibility_mask
+
 
 @njit
 def compute_visibility_mask(pts, projected_pts, depth_im, depth_thresh=0.005):
@@ -138,7 +143,7 @@ def compute_visibility_mask(pts, projected_pts, depth_im, depth_thresh=0.005):
     return visibility_mask
 
 
-def compute_visible_masked_pts_torch(scene_pts, projected_pts, visibility_mask, pred_masks, device='cuda'):
+def compute_visible_masked_pts_torch(scene_pts, projected_pts, visibility_mask, pred_masks, device="cuda"):
     N = scene_pts.shape[0]
     M, _, _ = pred_masks.shape  # (M, H, W)
     masked_pts = torch.zeros((M, N), dtype=torch.bool, device=device)
@@ -157,6 +162,7 @@ def compute_visible_masked_pts_torch(scene_pts, projected_pts, visibility_mask, 
             if pred_masks[m, y, x]:
                 masked_pts[m, i] = True
     return masked_pts
+
 
 @njit
 def compute_visible_masked_pts(scene_pts, projected_pts, visibility_mask, pred_masks):
@@ -183,6 +189,7 @@ def compute_relation_matrix_self(instance_pt_count):
     precision_matrix = intersection / (inliers.T + 1e-6)
     recall_matrix = intersection / (inliers + 1e-6)
     return iou_matrix, precision_matrix, recall_matrix
+
 
 def find_connected_components(adj_matrix):
     if torch.is_tensor(adj_matrix):

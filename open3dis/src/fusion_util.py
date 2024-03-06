@@ -1,15 +1,16 @@
-import os
-import torch
 import glob
 import math
-import numpy as np
-import nltk
+import os
 import re
+
+import nltk
+import numpy as np
+import torch
 import torch_scatter
 
 
 def make_intrinsic(fx, fy, mx, my):
-    '''Create camera intrinsics.'''
+    """Create camera intrinsics."""
 
     intrinsic = np.eye(4)
     intrinsic[0][0] = fx
@@ -18,19 +19,20 @@ def make_intrinsic(fx, fy, mx, my):
     intrinsic[1][2] = my
     return intrinsic
 
+
 def adjust_intrinsic(intrinsic, intrinsic_image_dim, image_dim):
-    '''Adjust camera intrinsics.'''
+    """Adjust camera intrinsics."""
 
     if intrinsic_image_dim == image_dim:
         return intrinsic
-    resize_width = int(math.floor(image_dim[1] * float(
-                    intrinsic_image_dim[0]) / float(intrinsic_image_dim[1])))
+    resize_width = int(math.floor(image_dim[1] * float(intrinsic_image_dim[0]) / float(intrinsic_image_dim[1])))
     intrinsic[0, 0] *= float(resize_width) / float(intrinsic_image_dim[0])
     intrinsic[1, 1] *= float(image_dim[1]) / float(intrinsic_image_dim[1])
     # account for cropping here
     intrinsic[0, 2] *= float(image_dim[0] - 1) / float(intrinsic_image_dim[0] - 1)
     intrinsic[1, 2] *= float(image_dim[1] - 1) / float(intrinsic_image_dim[1] - 1)
     return intrinsic
+
 
 def NMS(bounding_boxes, confidence_score, label, threshold):
     # If no bounding boxes, return empty list
@@ -78,6 +80,7 @@ def NMS(bounding_boxes, confidence_score, label, threshold):
         order = order[left]
 
     return picked_boxes, picked_score, picked_label
+
 
 def NMS_cuda(boxes, score, threshold):
     # If no bounding boxes, return empty list
@@ -129,11 +132,13 @@ def NMS_cuda(boxes, score, threshold):
 
     return picked_boxes, picked_score
 
+
 def calculate_iou(mask1, mask2):
     intersection = np.logical_and(mask1, mask2)
     union = np.logical_or(mask1, mask2)
     iou = np.sum(intersection) / np.sum(union)
     return iou
+
 
 def mask_nms(masks, scores, iou_threshold=0.5):
     # Sort masks based on scores in descending order
@@ -162,11 +167,12 @@ def mask_nms(masks, scores, iou_threshold=0.5):
 
     return selected_indices
 
+
 def heuristic_nounex(caption, with_preposition):
     # NLP processing
-    #nltk.set_proxy('http://proxytc.vingroup.net:9090/')
-    #nltk.download("popular", quiet=True)
-    #nltk.download("universal_tagset", quiet=True)
+    # nltk.set_proxy('http://proxytc.vingroup.net:9090/')
+    # nltk.download("popular", quiet=True)
+    # nltk.download("universal_tagset", quiet=True)
     if with_preposition:
         # Taken from Su Nam Kim Paper...
         grammar = r"""
@@ -211,6 +217,7 @@ def heuristic_nounex(caption, with_preposition):
 
     return continuous_chunk
 
+
 def get_nouns(caption):
     caption_words = []
     caption_words.extend(heuristic_nounex(caption, True))
@@ -218,14 +225,17 @@ def get_nouns(caption):
     result = []
     for word in list(set(caption_words)):
         result.append(word.strip())
-    
-    tokenized_components = re.findall(r'\b\w+\b', caption)
+
+    tokenized_components = re.findall(r"\b\w+\b", caption)
     ordered_components = [component for component in result if component in tokenized_components]
+
     def custom_sort(item):
         return ordered_components.index(item)
+
     sorted_list = sorted(result, key=custom_sort)
-    
+
     return sorted_list
+
 
 def rotate_3d_feature_vector_anticlockwise_90(feature_vector):
     rotated_vector = feature_vector.permute(1, 0, 2)
@@ -233,12 +243,14 @@ def rotate_3d_feature_vector_anticlockwise_90(feature_vector):
 
     return rotated_vector
 
+
 def rotate_3db_feature_vector_anticlockwise_90(feature_vector):
     feature_vector = feature_vector.permute(0, 2, 3, 1)
     rotated_vector = feature_vector.permute(0, 2, 1, 3)
     rotated_vector = torch.flip(rotated_vector, dims=(1,))
-    
+
     return rotated_vector.permute(0, 3, 1, 2)
+
 
 def matrix_nms(proposals_pred, categories, scores, final_score_thresh=0.1, topk=-1):
     if len(categories) == 0:
@@ -285,11 +297,8 @@ def matrix_nms(proposals_pred, categories, scores, final_score_thresh=0.1, topk=
     else:
         get_idxs = torch.nonzero(cate_scores_update >= final_score_thresh).view(-1)
 
-    return (
-        proposals_pred_sorted[get_idxs],
-        categories_sorted[get_idxs],
-        cate_scores_update[get_idxs]
-    )
+    return (proposals_pred_sorted[get_idxs], categories_sorted[get_idxs], cate_scores_update[get_idxs])
+
 
 def standard_nms(proposals_pred, categories, scores, threshold=0.2):
     ixs = torch.argsort(scores, descending=True)

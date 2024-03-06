@@ -1,5 +1,5 @@
-
 #### Currently Developing
+
 
 class S3DISReader(object):
     def __init__(
@@ -13,7 +13,7 @@ class S3DISReader(object):
         with_color_image=True,
         subsample=1,
         world_coordinate=True,
-        time_dist_limit=0.3
+        time_dist_limit=0.3,
     ):
         """
         Args:
@@ -34,13 +34,12 @@ class S3DISReader(object):
         self.area = scene_name[:6]
         # scene_name.split('_')[0]
         self.room = scene_name[7:]
-        self.root_path = f'../Dataset/s3dis/data_2d/{self.area}/{self.room}'
+        self.root_path = f"../Dataset/s3dis/data_2d/{self.area}/{self.room}"
 
         # pipeline does box residual coding here
         # self.num_class = len(class_names)
 
         self.dc = ARKitDatasetConfig()
-
 
         # rgb
 
@@ -51,7 +50,7 @@ class S3DISReader(object):
             depth_images = sorted(glob.glob(os.path.join(depth_folder, "*.png")))
             self.frame_ids = [os.path.basename(x) for x in depth_images]
             self.frame_ids = [x.split(".png")[0] for x in self.frame_ids]
-            self.video_id = depth_folder.split('/')[-2] #depth_folder.split('/')[-3]
+            self.video_id = depth_folder.split("/")[-2]  # depth_folder.split('/')[-3]
             self.frame_ids = [x for x in self.frame_ids]
             self.frame_ids.sort()
             self.intrinsics = {}
@@ -65,9 +64,9 @@ class S3DISReader(object):
         # intrinsic_file = os.path.join(self.root_path, "intrinsic.txt")
         pose_folder = os.path.join(self.root_path, "pose")
         for frame_id in self.frame_ids:
-            cam_pose = np.load(os.path.join(pose_folder, frame_id.replace('depth', 'pose') + '.npz'))
-            self.intrinsics[frame_id] = cam_pose['intrinsic']
-            self.poses[frame_id] = np.linalg.inv(cam_pose['pose'])
+            cam_pose = np.load(os.path.join(pose_folder, frame_id.replace("depth", "pose") + ".npz"))
+            self.intrinsics[frame_id] = cam_pose["intrinsic"]
+            self.poses[frame_id] = np.linalg.inv(cam_pose["pose"])
             # self.intrinsics[frame_id] = np.loadtxt(intrinsic_file)
             # self.poses[frame_id] = np.loadtxt(os.path.join(pose_folder, frame_id + '.txt'))
 
@@ -100,7 +99,7 @@ class S3DISReader(object):
         frame = {}
         frame["frame_id"] = frame_id
         fnamedepth = "{}.png".format(frame_id)
-        fnamecolor = "{}.png".format(frame_id.replace('depth', 'rgb'))
+        fnamecolor = "{}.png".format(frame_id.replace("depth", "rgb"))
         # fname = "{}.png".format(frame_id)
         depth_image_path = os.path.join(self.root_path, "depth", fnamedepth)
         if not os.path.exists(depth_image_path):
@@ -130,7 +129,7 @@ class S3DISReader(object):
         #     frame["image"][48 : 48 + 192, 64 : 64 + 256, :] = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
 
         (m, n, _) = frame["image"].shape
-        depth_image = frame["depth"] / 512.0 #rescale to obtain depth in meters
+        depth_image = frame["depth"] / 512.0  # rescale to obtain depth in meters
         # rgb_image = frame["image"] / 255.0
 
         # pcd, rgb_feat = generate_point(
@@ -145,9 +144,10 @@ class S3DISReader(object):
         global_in[:3, :3] = frame["intrinsics"]
         frame["pcd"] = None
         frame["color"] = None
-        frame["depth"] = depth_image # depth in meters
+        frame["depth"] = depth_image  # depth in meters
         frame["global_in"] = global_in
         return frame
+
 
 class ReplicaReader(object):
     def __init__(
@@ -160,7 +160,7 @@ class ReplicaReader(object):
         with_color_image=True,
         subsample=1,
         world_coordinate=True,
-        time_dist_limit=0.3
+        time_dist_limit=0.3,
     ):
         """
         Args:
@@ -191,7 +191,7 @@ class ReplicaReader(object):
             depth_images = sorted(glob.glob(os.path.join(depth_folder, "*.png")))
             self.frame_ids = [os.path.basename(x) for x in depth_images]
             self.frame_ids = [x.split(".png")[0] for x in self.frame_ids]
-            self.video_id = depth_folder.split('/')[-2] #depth_folder.split('/')[-3]
+            self.video_id = depth_folder.split("/")[-2]  # depth_folder.split('/')[-3]
             self.frame_ids = [x for x in self.frame_ids]
             self.frame_ids.sort()
             self.intrinsics = {}
@@ -200,13 +200,13 @@ class ReplicaReader(object):
         print("Number of original frames:", len(self.frame_ids))
 
         # get intrinsics
-        self.global_intrinsic = np.loadtxt('../Dataset/replica/replica_2d/intrinsics.txt')
+        self.global_intrinsic = np.loadtxt("../Dataset/replica/replica_2d/intrinsics.txt")
         self.poses = {}
         intrinsic_file = os.path.join(self.root_path, "intrinsic.txt")
         pose_folder = os.path.join(self.root_path, "pose")
         for frame_id in self.frame_ids:
             # self.intrinsics[frame_id] = np.loadtxt(intrinsic_file)
-            self.poses[frame_id] = np.loadtxt(os.path.join(pose_folder, frame_id + '.txt'))
+            self.poses[frame_id] = np.loadtxt(os.path.join(pose_folder, frame_id + ".txt"))
 
         self.frame_rate = frame_rate
         self.subsample = subsample
@@ -248,7 +248,12 @@ class ReplicaReader(object):
         if not os.path.exists(depth_image_path):
             print(depth_image_path, "does not exist")
         frame["depth"] = cv2.imread(depth_image_path, -1)
-        frame["image"] = cv2.cvtColor(cv2.imread(image_path, ), cv2.COLOR_BGR2RGB)
+        frame["image"] = cv2.cvtColor(
+            cv2.imread(
+                image_path,
+            ),
+            cv2.COLOR_BGR2RGB,
+        )
 
         frame["image_path"] = image_path
         depth_height, depth_width = frame["depth"].shape
@@ -265,13 +270,11 @@ class ReplicaReader(object):
         #     frame["image"][48 : 48 + 192, 64 : 64 + 256, :] = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
 
         # (m, n, _) = frame["image"].shape
-        depth_image = frame["depth"] / 6553.5 #rescale to obtain depth in meters
+        depth_image = frame["depth"] / 6553.5  # rescale to obtain depth in meters
         # rgb_image = frame["image"] / 255.0
-
-  
 
         frame["pcd"] = None
         frame["color"] = None
-        frame["depth"] = depth_image # depth in meters
+        frame["depth"] = depth_image  # depth in meters
         frame["global_in"] = self.global_intrinsic
         return frame

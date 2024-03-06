@@ -1,8 +1,8 @@
-import numpy as np
-from plyfile import PlyData
-
 import json
 import os
+
+import numpy as np
+from plyfile import PlyData
 
 
 # matrix: 4x4 np array

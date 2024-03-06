@@ -2,17 +2,18 @@
 # Adapted by Ayca Takmaz, July 2023 OpenSUN3D Challenge
 # Adapted for Scannet by PhucNDA, Aug 2023 Open3DIS
 
-import copy
-import cv2
-import glob
-import numpy as np
 import bisect
+import copy
+import glob
 import os
+
+import cv2
+import numpy as np
 import open3d as o3d
 
 
 def scaling_mapping(mapping, a, b, c, d):
-    # Scale mapping value from depth image to RGB image by interpolation 
+    # Scale mapping value from depth image to RGB image by interpolation
     # Calculate scaling factors
     scale_x = c / a
     scale_y = d / b
@@ -21,8 +22,13 @@ def scaling_mapping(mapping, a, b, c, d):
     mapping[:, 1] = mapping[:, 1] * scale_y
     return mapping
 
+
 class ScanNetReader(object):
-    def __init__(self, root_path, cfg,):
+    def __init__(
+        self,
+        root_path,
+        cfg,
+    ):
         self.root_path = root_path
 
         self.scene_id = os.path.basename(root_path)
@@ -39,45 +45,40 @@ class ScanNetReader(object):
         print("Number of original frames:", len(self.frame_ids))
 
         # get intrinsics only in Scannet
-        self.global_intrinsic = np.array([
-            [571.623718,0.0,319.5],
-            [0.0,571.623718,239.5],
-            [0.0,0.0,1.0]
-        ])
+        self.global_intrinsic = np.array([[571.623718, 0.0, 319.5], [0.0, 571.623718, 239.5], [0.0, 0.0, 1.0]])
         self.depth_scale = 1000.0
-            
+
         intrinsic_file = os.path.join(self.root_path, "intrinsic.txt")
         self.intrinsic = np.loadtxt(intrinsic_file)
 
         self.scene_pcd_path = os.path.join(cfg.data.original_ply, f"{self.scene_id}_vh_clean_2.ply")
-        
 
     def __iter__(self):
         return self
 
     def __len__(self):
         return len(self.frame_ids)
-    
+
     def read_depth(self, depth_path):
         depth_image = cv2.imread(depth_path, -1)
-        depth_image = depth_image / self.depth_scale #rescale to obtain depth in meters
+        depth_image = depth_image / self.depth_scale  # rescale to obtain depth in meters
         return depth_image
-    
+
     def read_image(self, image_path):
         image = cv2.imread(image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         return image
-    
+
     def read_pose(self, pose_path):
         pose = np.loadtxt(pose_path)
         return pose
-    
+
     def read_pointcloud(self, pcd_path=None):
         if pcd_path is None:
             pcd_path = self.scene_pcd_path
         scene_pcd = o3d.io.read_point_cloud(str(pcd_path))
         point = np.array(scene_pcd.points)
-        
+
         return point
 
     def __getitem__(self, idx):
@@ -112,4 +113,3 @@ class ScanNetReader(object):
         frame["global_intrinsic"] = self.global_intrinsic
 
         return frame
-    
