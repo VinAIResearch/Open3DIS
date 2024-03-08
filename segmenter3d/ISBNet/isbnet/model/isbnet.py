@@ -479,7 +479,7 @@ class ISBNet(nn.Module):
         voxel_mask_features = (
             self.mask_tower(torch.unsqueeze(voxel_output_feats, dim=2).permute(2, 1, 0)).permute(2, 1, 0).squeeze(-1)
         )
-        save_path = os.path.join("../../Dataset/Scannet200/dc_feat_scannet200", scan_ids[0] + ".pth")
+        save_path = os.path.join("../../Dataset/Scannet200/Scannet200_3D/dc_feat_scannet200", scan_ids[0] + ".pth")
         torch.save((voxel_mask_features[v2p_map.long()].cpu()), save_path)
 
         spp_semantic_scores_sm = custom_scatter_mean(
@@ -634,7 +634,7 @@ class ISBNet(nn.Module):
         saved_confs = [m["conf"] for m in pred_instances]
         torch.save(
             {"ins": saved_masks, "conf": saved_confs},
-            os.path.join("../../Dataset/Scannet200/isbnet_clsagnostic_scannet200", scan_ids[0] + ".pth"),
+            os.path.join("../../Dataset/Scannet200/Scannet200_3D/isbnet_clsagnostic_scannet200", scan_ids[0] + ".pth"),
         )
 
         return ret

@@ -82,18 +82,24 @@ Status | Name | Date
 ✅| Release the Open3DIS repository | 2024-02-28
 ✅| Release the source code | 2024-03-06
 ✅| Support Scannet200 | 2024-03-06
-⬜️| Support S3DIS
-⬜️| Support Replica
-⬜️| Support Scannet++
 Misc
 ✅| Support Grounded SAM | 2024-03-06
+
+<!-- 
+⬜️| Support S3DIS
+⬜️| Support Replica
+⬜️| Support Scannet++ 
+-->
+<!-- 
 ⬜️| Support SAM
 ⬜️| Support Detic
 ⬜️| Support SEEM
 ⬜️| Superpoint extraction
+⬜️| Class-agnostic inference
 ⬜️| Provide pre-extract class-agnostic 3D proposals (3D backbone)
 ⬜️| Provide pre-extract class-agnostic 3D proposals (2D-3D)
-⬜️| more...
+⬜️| more... 
+-->
 
 ## Acknowledgments
 

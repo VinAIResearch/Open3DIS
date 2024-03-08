@@ -16,12 +16,12 @@ grounded_feature:
 data:
   dataset_name: 'scannet200'
   split_path: './open3dis/dataset/scannetv2_val.txt'
-  datapath: '../Dataset/ScannetV2/ScannetV2_2D_5interval/trainval' # RGB-D + pose path
-  gt_pth: '../Dataset/Scannet200/val' # gt path
-  original_ply: '../Dataset/ScannetV2/original_ply_files' # raw pcl
-  spp_path: '../Dataset/Scannet200/superpoints' # spp path
-  cls_agnostic_3d_proposals_path: '../Dataset/Scannet200/isbnet_clsagnostic_scannet200' # cls agnostic 3D proposals
-  dc_features_path: '../Dataset/Scannet200/dc_feat_scannet200' # spp feature path
+  datapath: '../Dataset/Scannet200/Scannet200_2D_5interval/trainval' # RGB-D + pose path
+  gt_pth: '../Dataset/Scannet200/Scannet200_3D/val' # gt path
+  original_ply: '../Dataset/Scannet200/Scannet200_3D/original_ply_files' # raw pcl
+  spp_path: '../Dataset/Scannet200/Scannet200_3D/superpoints' # spp path
+  cls_agnostic_3d_proposals_path: '../Dataset/Scannet200_3D/isbnet_clsagnostic_scannet200' # cls agnostic 3D proposals
+  dc_features_path: '../Dataset/Scannet200/Scannet200_3D/dc_feat_scannet200' # spp feature path
   img_dim: [640, 480]
   rgb_img_dim: [1296, 968]
   cut_num_pixel_boundary: 10
