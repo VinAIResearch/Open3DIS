@@ -1,22 +1,21 @@
 # Run the code
 
-1\) Extract class-agnostic 3D proposals and 3D feature map from ISBNet:
-
-```
-cd ISBNet/
-python3 tools/test.py configs/scannet200/isbnet_scannet200.yaml pretrains/scannet200/head_scannetv2_200_val.pth
-```
-
-2\) Extract 2D masks from RGB-D sequences:
+1\) Extract 2D masks and first stage feature from RGB-D sequences:
 
 ```
 sh scripts/grounding_2d.sh
 ```
 
-3\) Generate open-vocab 3D instances:
+2\) Generate 3D instances from 2D masks:
 
 ```
 sh scripts/generate_3d_inst.sh
+```
+
+3\) Refine second stage feature from 3D instances:
+
+```
+sh scripts/refine_grounding_feat.sh
 ```
 
 4\) Run interactive visualization (required Open3D):
