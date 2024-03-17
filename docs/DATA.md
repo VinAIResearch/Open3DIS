@@ -33,23 +33,28 @@ Dataset
 │    │    |    |   instrinsic.txt (image intrinsic)
 │    │    |    ....
 │    │    |    intrinsic_depth.txt (depth intrinsic)    <- Scannet intrinsic ~ depth img
+│    │    ├── train
+│    │    ├── test 
 ############## 3D root folder with point cloud and annotation ##############
 |    ├── Scannet200_3D
-│    │    ├── original_ply_files                        <- the _vh_clean_2.ply point cloud file from Scannet raw data.
-│    │    │     scene0011_00_vh_clean_2.ply
-│    │    │     ...
-|    │    ├── val                                       <- normalized point cloud from PLY + ann for 3D backbone
-|    │    │     scene0011_00_inst_nostuff.pth           
-|    │    │     ...
-|    │    ├── superpoints                               <- superpoints directory
-|    │    │     scene0011_00.pth
-|    │    │     ...
-|    │    ├── isbnet_clsagnostic_scannet200             <- class agnostic 3D proposals
-|    │    │     scene0011_00.pth
-|    │    │     ...
-|    │    ├── dc_feat_scannet200                        <- 3D deep feature of 3D proposals network
-|    │    │     scene0011_00.pth
-|    │    │     ...
+│    │    ├── val                                       <- validation set
+│    │    │    ├── original_ply_files                   <- the _vh_clean_2.ply point cloud file from Scannet raw data.
+│    │    │    │     scene0011_00_vh_clean_2.ply
+│    │    │    │     ...
+|    │    │    ├── groundtruth                          <- normalized point cloud, color from PLY + ann (for 3D backbone)
+|    │    │    │     scene0011_00_inst_nostuff.pth           
+|    │    │    │     ...
+|    │    │    ├── superpoints                          <- superpoints directory
+|    │    │    │     scene0011_00.pth
+|    │    │    │     ...
+|    │    │    ├── isbnet_clsagnostic_scannet200        <- class agnostic 3D proposals
+|    │    │    │     scene0011_00.pth
+|    │    │    │     ...
+|    │    │    ├── dc_feat_scannet200                   <- 3D deep feature of 3D proposals network
+|    │    │    │    scene0011_00.pth
+|    │    │    │    ...
+│    │    ├── train
+│    │    ├── test 
 ####################################################################################
 pretrains
 ├── foundation_models
