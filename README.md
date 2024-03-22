@@ -103,7 +103,7 @@ Misc
 
 ## Acknowledgments
 
-This repo is built upon [ISBNet](https://github.com/VinAIResearch/ISBNet), [OpenScene](https://github.com/pengsongyou/openscene), [OpenSUN3D][https://github.com/OpenSun3D/OpenSun3D.github.io].
+This repo is built upon [ISBNet](https://github.com/VinAIResearch/ISBNet), [OpenScene](https://github.com/pengsongyou/openscene), [OpenSUN3D](https://github.com/OpenSun3D/OpenSun3D.github.io).
 
 ## Contacts
 
