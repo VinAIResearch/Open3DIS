@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 scan_eval = ScanNetEval(class_labels=INSTANCE_CAT_SCANNET_200)
 data_path = "../exp/version_test/final_result_hier_agglo"
-pcl_path = "../Dataset/Scannet200/val"
+pcl_path = "../Dataset/Scannet200/Scannet200_3D/val"
 
 if __name__ == "__main__":
     scenes = sorted([s for s in os.listdir(data_path) if s.endswith(".pth")])
@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     for scene in tqdm(scenes):
 
-        gt_path = os.path.join(pcl_path, scene.replace(".pth", "") + "_inst_nostuff.pth")
+        gt_path = os.path.join(pcl_path, scene)
         loader = torch.load(gt_path)
 
         sem_gt, inst_gt = loader[2], loader[3]
