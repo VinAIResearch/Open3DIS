@@ -19,7 +19,7 @@ def build_dataset(data_cfg, logger):
         return S3DISDataset(**_data_cfg)
     elif data_type == "scannetv2":
         return ScanNetDataset(**_data_cfg)
-    elif data_type == "scannet200":
+    elif data_type == "scannet200" or data_type == "scannetpp": # pretrain scannet200
         return ScanNet200Dataset(**_data_cfg)
     elif data_type == "stpls3d":
         return STPLS3DDataset(**_data_cfg)

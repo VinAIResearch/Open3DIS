@@ -9,7 +9,8 @@ import open_clip
 import torch
 import yaml
 from munch import Munch
-from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200
+from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200 # Scannet200
+from open3dis.dataset.scannetpp import SEMANTIC_CAT_SCANNET_PP # ScannetPP
 from open3dis.evaluation.scannetv2_inst_eval import ScanNetEval
 from open3dis.src.clustering.clustering import process_hierarchical_agglomerative
 from torch.nn import functional as F
@@ -145,16 +146,23 @@ def get_final_instances(
 
     pc_features = torch.load(pc_features_path)["feat"].cuda().half()
     pc_features = F.normalize(pc_features, dim=1, p=2)
-
+    
+    ### Offloading CPU for scannetpp @@
     # NOTE Pointwise semantic scores
-    predicted_class = (cfg.final_instance.scale_semantic_score * pc_features @ text_features.T).softmax(dim=-1)
+    predicted_class = torch.zeros((pc_features.shape[0], text_features.shape[0]), dtype = torch.float32)
+    bs = 100000
+    for batch in range(0, pc_features.shape[0], bs):
+        start = batch
+        end = min(start + bs, pc_features.shape[0])
+        predicted_class[start:end] = (cfg.final_instance.scale_semantic_score * pc_features[start:end].cpu() @ text_features.T.cpu().to(torch.float32)).softmax(dim=-1).cpu()
 
     # NOTE Mask-wise semantic scores
-    inst_class_scores = torch.einsum("kn,nc->kc", instance.float(), predicted_class)  # K x classes
-    inst_class_scores = inst_class_scores / instance.float().sum(dim=1)[:, None]  # K x classes
+    inst_class_scores = torch.einsum("kn,nc->kc", instance.float().cpu(), predicted_class).cuda()  # K x classes
+    inst_class_scores = inst_class_scores / instance.float().cuda().sum(dim=1)[:, None]  # K x classes
 
     # NOTE Top-K instances
     inst_class_scores = inst_class_scores.reshape(-1)  # n_cls * n_queries
+
     labels = (
         torch.arange(cfg.data.num_classes, device=inst_class_scores.device)
         .unsqueeze(0)
@@ -165,9 +173,8 @@ def get_final_instances(
     cur_topk = 600 if use_3d_proposals else cfg.final_instance.top_k
     _, idx = torch.topk(inst_class_scores, k=min(cur_topk, len(inst_class_scores)), largest=True)
     mask_idx = torch.div(idx, cfg.data.num_classes, rounding_mode="floor")
-
     cls_final = labels[idx]
-    scores_final = inst_class_scores[idx]
+    scores_final = inst_class_scores[idx].cuda()
     masks_final = instance[mask_idx]
 
     return masks_final, cls_final, scores_final
@@ -176,9 +183,16 @@ def get_final_instances(
 evaluate_openvocab = False
 evaluate_agnostic = False
 
+def get_parser():
+    parser = argparse.ArgumentParser(description="Configuration Open3DIS")
+    parser.add_argument("--config",type=str,required = True,help="Config")
+    return parser
+
 if __name__ == "__main__":
 
-    cfg = Munch.fromDict(yaml.safe_load(open("./configs/scannet200.yaml", "r").read()))
+    args = get_parser().parse_args()
+
+    cfg = Munch.fromDict(yaml.safe_load(open(args.config, "r").read()))
 
     evaluate_openvocab = cfg.evaluate.evalvocab  # Evaluation for openvocab
     evaluate_agnostic = cfg.evaluate.evalagnostic  # Evaluation for openvocab
@@ -187,18 +201,36 @@ if __name__ == "__main__":
         scene_ids = sorted([line.rstrip("\n") for line in file])
 
     # Scannet200 class text features saving
-    class_names = INSTANCE_CAT_SCANNET_200
-    if os.path.exists("./pretrains/text_features/scannet200_text_features.pth"):
-        text_features = torch.load("./pretrains/text_features/scannet200_text_features.pth").cuda().half()
-    else:
-        clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(
-            cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint
-        )
-        clip_adapter = clip_adapter.cuda()
-        with torch.no_grad(), torch.cuda.amp.autocast():
-            text_features = clip_adapter.encode_text(open_clip.tokenize(class_names).cuda())
-            text_features /= text_features.norm(dim=-1, keepdim=True)
-            torch.save(text_features.cpu(), "./pretrains/text_features/scannet200_text_features.pth")
+    if cfg.data.dataset_name == 'scannet200':
+        class_names = INSTANCE_CAT_SCANNET_200
+        if os.path.exists("../pretrains/text_features/scannet200_text_features.pth"):
+            text_features = torch.load("../pretrains/text_features/scannet200_text_features.pth").cuda().half()
+        else:
+            clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(
+                cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint
+            )
+            clip_adapter = clip_adapter.cuda()
+            with torch.no_grad(), torch.cuda.amp.autocast():
+                text_features = clip_adapter.encode_text(open_clip.tokenize(class_names).cuda())
+                text_features /= text_features.norm(dim=-1, keepdim=True)
+                torch.save(text_features.cpu(), "../pretrains/text_features/scannet200_text_features.pth")
+    if cfg.data.dataset_name == 'scannetpp':
+        class_names = SEMANTIC_CAT_SCANNET_PP
+        if os.path.exists("../pretrains/text_features/scannetpp_text_features.pth"):
+            text_features = torch.load("../pretrains/text_features/scannetpp_text_features.pth").cuda().half()
+        else:
+            try:
+                os.makedirs('../pretrains/text_features')
+            except:
+                pass
+            clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(
+                cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint
+            )
+            clip_adapter = clip_adapter.cuda()
+            with torch.no_grad(), torch.cuda.amp.autocast():
+                text_features = clip_adapter.encode_text(open_clip.tokenize(class_names).cuda())
+                text_features /= text_features.norm(dim=-1, keepdim=True)
+                torch.save(text_features.cpu(), "../pretrains/text_features/scannetpp_text_features.pth")        
 
     # Prepare directories
     save_dir_cluster = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.clustering_3d_output)
@@ -208,7 +240,10 @@ if __name__ == "__main__":
 
     with torch.cuda.amp.autocast(enabled=cfg.fp16):
         if evaluate_openvocab:
-            scan_eval = ScanNetEval(class_labels=INSTANCE_CAT_SCANNET_200)
+            if cfg.data.dataset_name == 'scannet200':
+                scan_eval = ScanNetEval(class_labels=INSTANCE_CAT_SCANNET_200)
+            if cfg.data.dataset_name == 'scannetpp':
+                scan_eval = ScanNetEval(class_labels=SEMANTIC_CAT_SCANNET_PP)                
             gtsem = []
             gtinst = []
             res = []
@@ -220,8 +255,7 @@ if __name__ == "__main__":
 
             #############################################
             # NOTE hierarchical agglomerative clustering
-            if True:
-                breakpoint()
+            if False:
                 cluster_dict = None
                 proposals3d, confidence = process_hierarchical_agglomerative(scene_id, cfg)
                 cluster_dict = {
@@ -240,7 +274,6 @@ if __name__ == "__main__":
                 use_3d_proposals=cfg.proposals.p3d,
                 only_instance=cfg.proposals.agnostic,
             )
-
             final_dict = {
                 "ins": rle_encode_gpu_batch(masks_final),
                 "conf": scores_final.cpu(),
@@ -252,7 +285,7 @@ if __name__ == "__main__":
 
             # NOTE Evaluation openvocab
             if evaluate_openvocab:
-                gt_path = os.path.join(cfg.data.gt_pth, f"{scene_id}_inst_nostuff.pth")
+                gt_path = os.path.join(cfg.data.gt_pth, f"{scene_id}.pth")
                 _, _, sem_gt, inst_gt = torch.load(gt_path)
                 gtsem.append(np.array(sem_gt).astype(np.int32))
                 gtinst.append(np.array(inst_gt).astype(np.int32))

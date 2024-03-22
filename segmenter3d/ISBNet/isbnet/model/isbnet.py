@@ -190,8 +190,8 @@ class ISBNet(nn.Module):
         if self.num_dyco_layer == 3:
             weight_nums = [
                 (self.mask_dim_out + 3 + 3) * self.mask_dim_out,
-                self.mask_dim_out * (self.mask_dim_out // 2),
-                (self.mask_dim_out // 2) * 1,
+                self.mask_dim_out * (self.mask_dim_out //2),
+                (self.mask_dim_out //2) * 1,
             ]
             bias_nums = [self.mask_dim_out, (self.mask_dim_out // 2), 1]
         else:
@@ -430,7 +430,6 @@ class ISBNet(nn.Module):
     ):
 
         assert batch_size == 1
-
         voxel_spps = spps[p2v_map[:, 1].long()]
         voxel_spps = torch.unique(voxel_spps, return_inverse=True)[1]
 
@@ -479,8 +478,13 @@ class ISBNet(nn.Module):
         voxel_mask_features = (
             self.mask_tower(torch.unsqueeze(voxel_output_feats, dim=2).permute(2, 1, 0)).permute(2, 1, 0).squeeze(-1)
         )
-        save_path = os.path.join("../../Dataset/Scannet200/Scannet200_3D/dc_feat_scannet200", scan_ids[0] + ".pth")
-        torch.save((voxel_mask_features[v2p_map.long()].cpu()), save_path)
+        
+        if self.dataset_name == "scannet200":
+            save_path = os.path.join("../../../Dataset/Scannet200/Scannet200_3D/val/dc_feat_scannet200", scan_ids[0] + ".pth")
+            torch.save((voxel_mask_features[v2p_map.long()].cpu()), save_path)
+        if self.dataset_name == "scannetpp":
+            save_path = os.path.join("../../../Dataset/Scannetpp/Scannetpp_3D/val/dc_feat_scannetpp", scan_ids[0] + ".pth")
+            torch.save((voxel_mask_features[v2p_map.long()].cpu()), save_path)
 
         spp_semantic_scores_sm = custom_scatter_mean(
             voxel_semantic_scores_sm,
@@ -629,14 +633,20 @@ class ISBNet(nn.Module):
         ret.update(dict(pred_instances=pred_instances))
 
         # NOTE save class-agnostic proposals
-
-        saved_masks = [m["pred_mask"] for m in pred_instances]
-        saved_confs = [m["conf"] for m in pred_instances]
-        torch.save(
-            {"ins": saved_masks, "conf": saved_confs},
-            os.path.join("../../Dataset/Scannet200/Scannet200_3D/isbnet_clsagnostic_scannet200", scan_ids[0] + ".pth"),
-        )
-
+        if self.dataset_name == "scannet200":
+            saved_masks = [m["pred_mask"] for m in pred_instances]
+            saved_confs = [m["conf"] for m in pred_instances]
+            torch.save(
+                {"ins": saved_masks, "conf": saved_confs},
+                os.path.join("../../../Dataset/Scannet200/Scannet200_3D/val/isbnet_clsagnostic_scannet200", scan_ids[0] + ".pth"),
+            )
+        if self.dataset_name == "scannetpp":           
+            saved_masks = [m["pred_mask"] for m in pred_instances]
+            saved_confs = [m["conf"] for m in pred_instances]
+            torch.save(
+                {"ins": saved_masks, "conf": saved_confs},
+                os.path.join("../../../Dataset/Scannetpp/Scannetpp_3D/val/isbnet_clsagnostic_scannetpp", scan_ids[0] + ".pth"),
+            )
         return ret
 
     def forward_backbone(
@@ -825,8 +835,8 @@ class ISBNet(nn.Module):
             weight_splits[0] = weight_splits[0].reshape(num_instances, out_channels + 6, out_channels)
             bias_splits[0] = bias_splits[0].reshape(num_instances, out_channels)
             weight_splits[1] = weight_splits[1].reshape(num_instances, out_channels, out_channels // 2)
-            bias_splits[1] = bias_splits[1].reshape(num_instances, out_channels // 2)
-            weight_splits[2] = weight_splits[2].reshape(num_instances, out_channels // 2, 1)
+            bias_splits[1] = bias_splits[1].reshape(num_instances, out_channels //2)
+            weight_splits[2] = weight_splits[2].reshape(num_instances, out_channels //2, 1)
             bias_splits[2] = bias_splits[2].reshape(num_instances, 1)
         else:
             weight_splits[0] = weight_splits[0].reshape(num_instances, out_channels + 6, out_channels)
@@ -982,7 +992,7 @@ class ISBNet(nn.Module):
 
             if self.dataset_name == "scannetv2":
                 pred["label_id"] = cls_final[i] + 1
-            elif self.dataset_name == "scannet200":
+            elif self.dataset_name == "scannet200" or self.dataset_name == "scannetpp":
                 pred["label_id"] = cls_final[i] + 1
             elif self.dataset_name == "s3dis":
                 pred["label_id"] = cls_final[i] + 3

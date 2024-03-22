@@ -13,7 +13,7 @@ model:
   filter_bg_thresh: 0.1
   iterative_sampling: True
   instance_head_cfg:
-    num_dyco_layer: 2
+    num_dyco_layer: 2 # dyco 2
     dec_dim: 128
     n_sample_pa1: 2048
     n_queries: 256
@@ -33,8 +33,8 @@ model:
 data:
   train:
     type: 'scannet200'
-    data_root: '../../Dataset/Scannet200'
-    prefix: 'train'
+    data_root: '../../../Dataset/Scannet200/Scannet200_3D/train'
+    prefix: 'groundtruth'
     suffix: '_inst_nostuff.pth'
     training: True
     repeat: 4
@@ -45,8 +45,8 @@ data:
       min_npoint: 5000
   test:
     type: 'scannet200'
-    data_root: '../../Dataset/Scannet200'
-    prefix: 'val'
+    data_root: '../../../Dataset/Scannet200/Scannet200_3D/val'
+    prefix: 'groundtruth'
     suffix: '_inst_nostuff.pth'
     training: False
     voxel_cfg:

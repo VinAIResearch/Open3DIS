@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import time
+import cv2
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -91,27 +92,27 @@ def refine_grounding_features(
 
     data_2d = torch.load(cluster_dict_path)
     if isinstance(data_2d["ins"][0], dict):
-        instance_2d = torch.stack([torch.from_numpy(rle_decode(ins)) for ins in data_2d["ins"]], dim=0).cuda()
+        instance_2d = torch.stack([torch.from_numpy(rle_decode(ins)) for ins in data_2d["ins"]], dim=0)
     else:
-        instance_2d = data_2d["ins"].cuda()
+        instance_2d = data_2d["ins"]
 
-    confidence_2d = torch.tensor(data_2d["conf"]).cuda()
+    confidence_2d = torch.tensor(data_2d["conf"])
 
     ########### Proposal branch selection ###########
     if use_3d_proposals:
         agnostic3d_path = os.path.join(cfg.data.cls_agnostic_3d_proposals_path, f"{scene_id}.pth")
         agnostic3d_data = torch.load(agnostic3d_path)
         instance_3d_encoded = np.array(agnostic3d_data["ins"])
-        confidence_3d = torch.tensor(agnostic3d_data["conf"]).cuda()
+        confidence_3d = torch.tensor(agnostic3d_data["conf"])
 
         n_instance_3d = instance_3d_encoded.shape[0]
 
         if isinstance(instance_3d_encoded[0], dict):
             instance_3d = torch.stack(
                 [torch.from_numpy(rle_decode(in3d)) for in3d in instance_3d_encoded], dim=0
-            ).cuda()
+            )
         else:
-            instance_3d = torch.stack([torch.tensor(in3d) for in3d in instance_3d_encoded], dim=0).cuda()
+            instance_3d = torch.stack([torch.tensor(in3d) for in3d in instance_3d_encoded], dim=0)
 
         intersection = torch.einsum("nc,mc->nm", instance_2d.float(), instance_3d.float())
         # print(intersection.shape, instance.shape, )
@@ -174,9 +175,14 @@ def refine_grounding_features(
         rgb_img = scannet_loader.read_image(frame["image_path"])
         rgb_img_dim = rgb_img.shape[:2]
 
-        mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
-        mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
-        if "scannet" in cfg.data.dataset_name:  # Scaling in Scannet only
+        if "scannetpp" in cfg.data.dataset_name:  # Map on image resolution in Scannetpp only
+            depth = cv2.resize(depth, (img_dim[0], img_dim[1]))
+            mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+
+        if "scannet200" in cfg.data.dataset_name:
+            mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
             new_mapping = scaling_mapping(
                 torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
             )
@@ -185,7 +191,7 @@ def refine_grounding_features(
         if mapping[:, 3].sum() < 100:  # no points corresponds to this image, skip sure
             continue
 
-        mappings.append(mapping)
+        mappings.append(mapping.cpu())
         images.append(rgb_img)
 
     mappings = torch.stack(mappings, dim=0)
@@ -228,6 +234,7 @@ def refine_grounding_features(
                 batch_index.append(point_inds_)
                 confidence_feat.append(confidence[inst])
                 inst_inds.append(inst)
+                # reproduce from OpenMask3D
                 tmpx1 = int(max(0, x1 - (x2 - x1) * kexp * round))
                 tmpy1 = int(max(0, y1 - (y2 - y1) * kexp * round))
                 tmpx2 = int(min(H - 1, x2 + (x2 - x1) * kexp * round))
@@ -256,13 +263,19 @@ def refine_grounding_features(
     inst_features = F.normalize(inst_features, dim=1, p=2).half().cpu()
     return refined_pc_features, inst_features
 
+def get_parser():
+    parser = argparse.ArgumentParser(description="Configuration Open3DIS")
+    parser.add_argument("--config",type=str,required = True,help="Config")
+    return parser
 
 if __name__ == "__main__":
     # Multiprocess logger
     if os.path.exists("tracker_refine.txt") == False:
         with open("tracker_refine.txt", "w") as file:
             file.write("Processed Scenes .\n")
-    cfg = Munch.fromDict(yaml.safe_load(open("./configs/scannet200.yaml", "r").read()))
+
+    args = get_parser().parse_args()
+    cfg = Munch.fromDict(yaml.safe_load(open(args.config, "r").read()))
 
     # Scannet split path
     with open(cfg.data.split_path, "r") as file:

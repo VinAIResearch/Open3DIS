@@ -178,17 +178,36 @@ def compute_visible_masked_pts(scene_pts, projected_pts, visibility_mask, pred_m
     return masked_pts
 
 
-def compute_relation_matrix_self(instance_pt_count):
-    if not torch.is_tensor(instance_pt_count):
-        instance_pt_count = torch.from_numpy(instance_pt_count)
-    instance_pt_mask = instance_pt_count.to(torch.bool).to(torch.float32)
-    intersection = instance_pt_mask @ instance_pt_mask.T  # (M, num_instances)
-    inliers = instance_pt_mask.sum(1, keepdims=True)
-    union = inliers + inliers.T - intersection
+def compute_relation_matrix_self(instance_pt_mask, spp, sieve):
+    if not torch.is_tensor(instance_pt_mask):
+        instance_pt_mask = torch.from_numpy(instance_pt_mask)
+    torch.cuda.empty_cache()
+
+    #### Small tweak make it work on scannetpp ~ 40GB A100
+    # n = instance_pt_count.shape[1]
+    # numbers = list(range(n))
+    # chosen_numbers = random.sample(numbers, n // max(1,int(((n *instance_pt_count.shape[0])/1e8))))
+    # instance_pt_mask = instance_pt_count[:,chosen_numbers].to(torch.bool).to(torch.float16)
+
+    # torch.cuda.empty_cache()
+    # intersection = []
+    # for i in range(instance_pt_mask.shape[0]):
+    #     it = []
+    #     for j in range(instance_pt_mask.shape[0]):
+    #         it.append(instance_pt_mask[i].cuda() @ instance_pt_mask.T[:, j].cuda())
+    #         torch.cuda.empty_cache()
+    #     intersection.append(torch.tensor(it))  # save mem
+    # intersection = torch.stack(intersection).cuda()
+    # (1k,1M) ~ 1e9
+    instance_pt_mask_tmp = (instance_pt_mask.to(torch.float64) * sieve.expand(instance_pt_mask.shape[0], -1).to(torch.float64).cuda()).to(torch.float64)
+    intersection =  (instance_pt_mask.to(torch.float64) @ instance_pt_mask_tmp.T.to(torch.float64)).to(torch.float64)
+    inliers = instance_pt_mask_tmp.sum(1, keepdims=True).to(torch.float64).cuda()
+    union = (inliers + inliers.T - intersection).to(torch.float64)
     iou_matrix = intersection / (union + 1e-6)
     precision_matrix = intersection / (inliers.T + 1e-6)
     recall_matrix = intersection / (inliers + 1e-6)
-    return iou_matrix, precision_matrix, recall_matrix
+    torch.cuda.empty_cache()
+    return iou_matrix.to(torch.float64), precision_matrix, recall_matrix.to(torch.float64)
 
 
 def find_connected_components(adj_matrix):

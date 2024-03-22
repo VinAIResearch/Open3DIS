@@ -1,10 +1,10 @@
 LICENSE
 README.md
 setup.py
-/root/CVPR24/CVPR/segmenter2d/GroundingDINO/groundingdino/models/GroundingDINO/csrc/cuda_version.cu
-/root/CVPR24/CVPR/segmenter2d/GroundingDINO/groundingdino/models/GroundingDINO/csrc/vision.cpp
-/root/CVPR24/CVPR/segmenter2d/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cpu.cpp
-/root/CVPR24/CVPR/segmenter2d/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cuda.cu
+/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/groundingdino/models/GroundingDINO/csrc/cuda_version.cu
+/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/groundingdino/models/GroundingDINO/csrc/vision.cpp
+/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cpu.cpp
+/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cuda.cu
 groundingdino/__init__.py
 groundingdino/version.py
 groundingdino.egg-info/PKG-INFO

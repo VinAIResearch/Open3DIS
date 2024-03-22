@@ -51,7 +51,7 @@ class ScanNetReader(object):
         intrinsic_file = os.path.join(self.root_path, "intrinsic.txt")
         self.intrinsic = np.loadtxt(intrinsic_file)
 
-        self.scene_pcd_path = os.path.join(cfg.data.original_ply, f"{self.scene_id}_vh_clean_2.ply")
+        self.scene_pcd_path = os.path.join(cfg.data.original_ply, f"{self.scene_id}.ply")
 
     def __iter__(self):
         return self

@@ -165,7 +165,7 @@ class CustomDataset(Dataset):
         # if scan_id in ['scene0636_00', 'scene0154_00']:
         #     return self.__getitem__(0)
         xyz, rgb, semantic_label, instance_label, spp = self.load(filename)
-
+        
         data = (
             self.transform_train(xyz, rgb, semantic_label, instance_label, spp)
             if self.training

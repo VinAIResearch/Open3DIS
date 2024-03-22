@@ -68,6 +68,8 @@ pip install -r requirements.txt
 
 Download the pretrained foundation models:
 ```
+cd <outside Open3DIS>
+
 mkdir -p pretrains/foundation_models
 cd pretrains/foundation_models
 

@@ -25,7 +25,7 @@ from groundingdino.models import build_model
 from groundingdino.util.slconfig import SLConfig
 from groundingdino.util.utils import clean_state_dict, get_phrases_from_posmap
 from munch import Munch
-from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200
+from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200 # Scannet200
 from open3dis.dataset.scannet_loader import ScanNetReader, scaling_mapping
 
 #### Open3DIS util
@@ -37,6 +37,10 @@ from PIL import Image, ImageDraw, ImageFont
 from segment_anything import SamPredictor, build_sam, build_sam_hq
 from tqdm import tqdm, trange
 
+############################################## Grounding DINO + SAM ##############################################
+'''
+For grounding DINO and SAM on Scannet200 + Scannetpp. We generate class-agnostic 2D masks based on Scannet200 class name (198 INSTANCE CLASS) -> Speed
+'''
 
 def load_image(image_pil):
     """
@@ -290,13 +294,14 @@ def gen_grounded_mask_and_feat(
 
         if False:
             # draw output image
-            image = scannet_loader.load_image(image_path)
+            image = scannet_loader.read_image(image_path)
             plt.figure(figsize=(10, 10))
             plt.imshow(image)
             for mask in masks:
                 show_mask(mask.cpu().numpy(), plt.gca(), random_color=True)
             plt.axis("off")
             # plot out
+            os.makedirs("../debug/" + scene_id)
             plt.savefig(
                 os.path.join("../debug/" + scene_id + "/sam_" + str(i) + ".jpg"),
                 bbox_inches="tight",
@@ -314,9 +319,15 @@ def gen_grounded_mask_and_feat(
         if gen_feat:
             pose = scannet_loader.read_pose(frame["pose_path"])
             depth = scannet_loader.read_depth(frame["depth_path"])
-            mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
-            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
-            if "scannet" in cfg.data.dataset_name:  # Scaling mapper in Scannet only
+            
+            if "scannetpp" in cfg.data.dataset_name:  # Map on image resolution in Scannetpp only
+                depth = cv2.resize(depth, (img_dim[0], img_dim[1]))
+                mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
+                mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+
+            if "scannet200" in cfg.data.dataset_name:  # Scaling mapper in Scannet200 only
+                mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
+                mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
                 new_mapping = scaling_mapping(
                     torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
                 )
@@ -337,13 +348,20 @@ def gen_grounded_mask_and_feat(
     return grounded_data_dict, grounded_features
 
 
+def get_parser():
+    parser = argparse.ArgumentParser(description="Configuration Open3DIS")
+    parser.add_argument("--config",type=str,required = True,help="Config")
+    return parser
+
 if __name__ == "__main__":
+
+    args = get_parser().parse_args()
 
     # Multiprocess logger
     if os.path.exists("tracker_2d.txt") == False:
         with open("tracker_2d.txt", "w") as file:
             file.write("Processed Scenes .\n")
-    cfg = Munch.fromDict(yaml.safe_load(open("./configs/scannet200.yaml", "r").read()))
+    cfg = Munch.fromDict(yaml.safe_load(open(args.config, "r").read()))
 
     # Fondation model loader
     clip_adapter, clip_preprocess, grounding_dino_model, sam_predictor = init_foundation_models(cfg)

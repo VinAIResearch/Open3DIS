@@ -46,6 +46,7 @@ def hierarchical_agglomerative_clustering(
     spp,
     n_spp,
     n_points,
+    sieve,
     detic=False,
     visi=0.9,
     simi=0.5,
@@ -56,7 +57,7 @@ def hierarchical_agglomerative_clustering(
         # Graph initialization
         index = left
         masks = pcd_list[index]["masks"]
-        mapping = pcd_list[index]["mapping"]
+        mapping = pcd_list[index]["mapping"].cuda()
 
         total_spp_points = torch_scatter.scatter((mapping[:, 3] == 1).float(), spp, dim=0, reduce="sum")
 
@@ -125,10 +126,10 @@ def hierarchical_agglomerative_clustering(
 
     mid = int((left + right) / 2)
     graph_1_onehot, weight_1 = hierarchical_agglomerative_clustering(
-        pcd_list, left, mid, spp, n_spp, n_points, detic=detic
+        pcd_list, left, mid, spp, n_spp, n_points, sieve, detic=detic
     )
     graph_2_onehot, weight_2 = hierarchical_agglomerative_clustering(
-        pcd_list, mid + 1, right, spp, n_spp, n_points, detic=detic
+        pcd_list, mid + 1, right, spp, n_spp, n_points, sieve, detic=detic
     )
 
     if len(graph_1_onehot) == 0 and len(graph_2_onehot) == 0:
@@ -147,7 +148,7 @@ def hierarchical_agglomerative_clustering(
 
     graph_feat_matrix = pairwise_cosine_similarity(graph_feat, graph_feat)
 
-    iou_matrix, _, recall_matrix = compute_relation_matrix_self(new_graph[:, spp])
+    iou_matrix, _, recall_matrix = compute_relation_matrix_self(new_graph, spp, sieve)
     adjacency_matrix = ((iou_matrix >= 0.9) | (recall_matrix >= 0.9)) & (graph_feat_matrix >= 0.9)
     # adjacency_matrix = ((iou_matrix >= 0.8) | (recall_matrix >= 0.8)) & (graph_feat_matrix >= 0.8)
     # adjacency_matrix = ((iou_matrix >= visi) | (recall_matrix >= visi)) & (graph_feat_matrix >= 0.9)
@@ -186,8 +187,7 @@ def sequential_feature_overlap_feat_agg(
     n_points,
     detic=False,
     visi=0.5,
-    simi=0.5,
-):
+    simi=0.5,):
     global distance_matrix, num_instance, num_point, pointfeature, dc_feature_matrix, dc_feature_spp
 
     def single(pcd_list, left, right, spp, n_spp, n_points, detic=False, visi=0.5, simi=0.5):
@@ -325,8 +325,9 @@ def process_hierarchical_agglomerative(scene_id, cfg):
     exp_path = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name)
 
     spp_path = os.path.join(cfg.data.spp_path, f"{scene_id}.pth")
-
-    mask2d_path = os.path.join(exp_path, "maskGdino", scene_id + ".pth")
+    
+    mask2d_path = os.path.join(exp_path, cfg.exp.mask2d_output, scene_id + ".pth")
+    # mask2d_path = os.path.join(exp_path, "maskGdino", scene_id + ".pth")
     # mask2d_path = os.path.join(exp_path, 'maskDetic', scene_id+'.pth')
     # mask2d_path = os.path.join(exp_path, 'maskODISE', scene_id+'.pth')
     # mask2d_path = os.path.join(exp_path, 'maskSEEM', scene_id+'.pth')
@@ -345,7 +346,7 @@ def process_hierarchical_agglomerative(scene_id, cfg):
     points = torch.from_numpy(points).cuda()
     n_points = points.shape[0]
 
-    spp = torch.tensor(torch.load(spp_path)).cuda()
+    spp = torch.tensor(torch.load(spp_path)).cuda() # memory ease
     n_spp = torch.unique(spp).shape[0]
     unique_spp, spp, num_point = torch.unique(spp, return_inverse=True, return_counts=True)
 
@@ -356,6 +357,11 @@ def process_hierarchical_agglomerative(scene_id, cfg):
     dc_feature_matrix = pairwise_cosine_similarity(dc_feature_spp, dc_feature_spp)
 
     visibility = torch.zeros((n_points), dtype=torch.int, device=spp.device)
+
+    sieve = [] # number of point in spp for fast calculating IoU between 3D masks
+    for i in range (n_spp):
+        sieve.append((spp == i).sum().item()) 
+    sieve = torch.tensor(sieve)
 
     groundedsam_data_dict = torch.load(mask2d_path)
     pcd_list = []
@@ -382,11 +388,16 @@ def process_hierarchical_agglomerative(scene_id, cfg):
             masks = []
             for mask in encoded_masks:
                 masks.append(torch.tensor(pycocotools.mask.decode(mask)))
-            masks = torch.stack(masks, dim=0).cuda()
+            masks = torch.stack(masks, dim=0).cpu() # cuda fast but OOM
 
-        mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
-        mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
-        if "scannet" in cfg.data.dataset_name:
+        if "scannetpp" in cfg.data.dataset_name:  # Map on image resolution in Scannetpp only
+            depth = cv2.resize(depth, (img_dim[0], img_dim[1]))
+            mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+
+        if "scannet200" in cfg.data.dataset_name:
+            mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
             new_mapping = scaling_mapping(
                 torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
             )
@@ -394,12 +405,14 @@ def process_hierarchical_agglomerative(scene_id, cfg):
 
         visibility[mapping[:, 3] == 1] += 1
 
-        dic = {"mapping": mapping, "masks": masks}
+        dic = {"mapping": mapping.cpu(), "masks": masks}
         pcd_list.append(dic)
-
+    
+    torch.cuda.empty_cache()
     num_instance = 0
+    
     groups, weights = hierarchical_agglomerative_clustering(
-        pcd_list, 0, len(pcd_list) - 1, spp, n_spp, n_points, detic=False, visi=visi, simi=simi
+        pcd_list, 0, len(pcd_list) - 1, spp, n_spp, n_points, sieve, detic=False, visi=visi, simi=simi
     )
 
     if len(groups) == 0:

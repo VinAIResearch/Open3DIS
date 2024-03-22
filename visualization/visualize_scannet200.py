@@ -123,25 +123,31 @@ class VisualizationScannet200:
         self.vis.add_points(f'2D lifted mask: ' + str(i), self.point, tt_col, point_size=20, visible=True)
         print('---Done---')        
         
-    def finalviz(self, agnostic_path, specific = False):
+    def finalviz(self, agnostic_path, specific = False, vocab = False):
         print('...Visualizing final class agnostic mask...')
         dic = torch.load(agnostic_path)
         instance = dic['ins']
         instance = torch.stack([torch.tensor(rle_decode(ins)) for ins in instance])
         conf2d = dic['conf'] # confidence really doesn't affect much (large mask -> small conf)
+
+        if vocab == True:
+            label = dic['final_class']
         pallete =  generate_palette(int(2e3 + 1))
         tt_col = self.color.copy()
-        limit = 10
+        limit = 5
         for i in range(0, instance.shape[0]):
             tt_col[instance[i] == 1] = pallete[i]
             if specific and limit > 0: # be more specific but limit 10 masks (avoiding lag)
                 limit -= 1
                 tt_col_specific = self.color.copy()
                 tt_col_specific[instance[i] == 1] = pallete[i]
-                self.vis.add_points(f'final mask: ' + str(i) + '_' + str(conf2d[i].item())[:5], self.point, tt_col_specific, point_size=20, visible=True)
+                if vocab == True:
+                    self.vis.add_points(f'final mask: ' + str(i) + '_' + class_names[label[i]], self.point, tt_col_specific, point_size=20, visible=True)                
+                else:
+                    self.vis.add_points(f'final mask: ' + str(i) + '_' + str(conf2d[i].item())[:5], self.point, tt_col_specific, point_size=20, visible=True)
 
         self.vis.add_points(f'final mask: ' + str(i), self.point, tt_col, point_size=20, visible=True)
-        print('---Done---')   
+        print('---Done---')  
 
 if __name__ == "__main__":
     
@@ -152,6 +158,7 @@ if __name__ == "__main__":
         3. 3D backbone mask (isbnet, mask3d) -- class-agnostic
         4. lifted 2D masks -- class-agnostic
         5. final masks --class-agnostic (2D+3D)
+        
     
     '''
     # Scene ID to visualize
@@ -163,7 +170,7 @@ if __name__ == "__main__":
     spp_path = '../Dataset/Scannet200/Scannet200_3D/val/superpoints/' + scene_id + '.pth'
     ## 2
     check_gtviz = False
-    gt_path = '../Dataset/Scannet200/Scannet200_3D/val/groundtruth/' + scene_id + '_inst_nostuff.pth'
+    gt_path = '../Dataset/Scannet200/Scannet200_3D/val/groundtruth/' + scene_id + '.pth'
     ## 3
     check_3dviz = False
     mask3d_path = '../Dataset/Scannet200/Scannet200_3D/val/isbnet_clsagnostic_scannet200/' + scene_id + '.pth'
@@ -178,7 +185,7 @@ if __name__ == "__main__":
 
     # Visualize Point Cloud 
     ply_file = '../Dataset/Scannet200/Scannet200_3D/val/original_ply_files'
-    point, color = read_pointcloud(os.path.join(ply_file,scene_id + '_vh_clean_2.ply'))
+    point, color = read_pointcloud(os.path.join(ply_file,scene_id + '.ply'))
     color = color * 127.5
 
     VIZ = VisualizationScannet200(point, color)    
@@ -192,5 +199,5 @@ if __name__ == "__main__":
     if check_2dviz:
         VIZ.vizmask2d(mask2d_path, specific = False)
     if check_finalviz:
-        VIZ.finalviz(agnostic_path, specific = True)
+        VIZ.finalviz(agnostic_path, specific = True, vocab = True)
     VIZ.save(pyviz3d_dir)
