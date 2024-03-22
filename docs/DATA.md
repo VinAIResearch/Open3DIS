@@ -1,6 +1,9 @@
 # Data Preparation
 
 We will provide a detailed preprocessing script for every dataset. Our aim is to make the code adaptable to various settings with minimal hard modifications. Keep an eye out for updates!
+
+We provide an example processed set of Scannet200 (1 scene) + Scannetpp (1 scene) here: [GoogleDrive](https://drive.google.com/file/d/1eavd3il1s9r5tq50BK3hqmE0TtQ68kHU/view?usp=sharing)
+
 ## 3D backbone
 
 Running 3D backbone ISBNet will create isbnet_clsagnostic, dc_feat folders!
