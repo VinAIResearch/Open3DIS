@@ -16,7 +16,9 @@
 6. [Contacts](#Contacts)
 
 # Open3DIS: Open-vocabulary 3D Instance Segmentation with 2D Mask Guidance [CVPR'24](https://cvpr.thecvf.com/)
-<a href="https://arxiv.org/abs/2312.10671"><img src="https://img.shields.io/badge/https%3A%2F%2Farxiv.org%2Fabs%2F2303.00246-arxiv-brightgreen"></a>
+<a href="https://open3dis.github.io/"><img src="https://img.shields.io/badge/Website-open3dis.github.io-blue?style=for-the-badge"></a>
+<a href="https://arxiv.org/abs/2312.10671"><img src="https://img.shields.io/badge/arxiv-2312.10671-red?style=for-the-badge"></a>
+
 <div align="center">
 <a href="https://github.com/PhucNDA" target="_blank">Phuc&nbsp;Nguyen</a> &emsp; <b>&middot;</b> &emsp;
 <a href="https://ngoductuanlhp.github.io/" target="_blank">Tuan&nbsp;Duc&nbsp;Ngo</a>
