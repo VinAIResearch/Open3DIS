@@ -82,22 +82,18 @@ Status | Name | Date
 ✅| Release the Open3DIS repository | 2024-02-28
 ✅| Release the source code | 2024-03-06
 ✅| Support Scannet200 | 2024-03-06
-⬜️| Support S3DIS
-⬜️| Support Replica
-⬜️| Support Scannet++ 
+✅| Support Scannet++  | 2024-03-23
+⬜️| Publicize Open3DIS  | 
 Misc
 ✅| Support Grounded SAM | 2024-03-06
-⬜️| Support SAM
-⬜️| Support Detic
-⬜️| Support SEEM
-⬜️| Superpoint extraction
-⬜️| Class-agnostic inference
-⬜️| Provide pre-extract class-agnostic 3D proposals (3D backbone)
-⬜️| Provide pre-extract class-agnostic 3D proposals (2D-3D)
 ⬜️| more... 
 
 <!-- 
-
+⬜️| Provide pre-extract class-agnostic 3D proposals (3D backbone)
+⬜️| Provide pre-extract class-agnostic 3D proposals (2D-3D)
+⬜️| Support SAM
+⬜️| Support Detic
+⬜️| Support SEEM
 -->
 <!-- 
 
@@ -105,7 +101,7 @@ Misc
 
 ## Acknowledgments
 
-This repo is built upon [ISBNet](https://github.com/VinAIResearch/ISBNet), [OpenScene](https://github.com/pengsongyou/openscene).
+This repo is built upon [ISBNet](https://github.com/VinAIResearch/ISBNet), [OpenScene](https://github.com/pengsongyou/openscene), [OpenSUN3D][https://github.com/OpenSun3D/OpenSun3D.github.io].
 
 ## Contacts
 
