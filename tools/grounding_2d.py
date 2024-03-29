@@ -323,10 +323,10 @@ def gen_grounded_mask_and_feat(
             if "scannetpp" in cfg.data.dataset_name:  # Map on image resolution in Scannetpp only
                 depth = cv2.resize(depth, (img_dim[0], img_dim[1]))
                 mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
-                mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+                mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["translated_intrinsics"])
 
-            if "scannet200" in cfg.data.dataset_name:  # Scaling mapper in Scannet200 only
-                mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
+            if "scannet200" in cfg.data.dataset_name:
+                mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
                 mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
                 new_mapping = scaling_mapping(
                     torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
@@ -357,10 +357,7 @@ if __name__ == "__main__":
 
     args = get_parser().parse_args()
 
-    # Multiprocess logger
-    if os.path.exists("tracker_2d.txt") == False:
-        with open("tracker_2d.txt", "w") as file:
-            file.write("Processed Scenes .\n")
+
     cfg = Munch.fromDict(yaml.safe_load(open(args.config, "r").read()))
 
     # Fondation model loader

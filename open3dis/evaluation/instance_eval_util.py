@@ -75,13 +75,14 @@ class Instance(object):
     med_dist = -1
     dist_conf = 0.0
 
-    def __init__(self, mesh_vert_instances, instance_id, coords=None):
+    def __init__(self, mesh_vert_instances, instance_id, coords=None, encode = 1000):
+        self.encode = encode
         if instance_id == -1:
             return
         self.instance_id = int(instance_id)
         self.label_id = int(self.get_label_id(instance_id))
         self.vert_count = int(self.get_instance_verts(mesh_vert_instances, instance_id))
-
+        
         if coords is None:
             self.box = np.zeros((6))
         else:
@@ -91,7 +92,7 @@ class Instance(object):
             self.box = np.concatenate([box_min, box_max])
 
     def get_label_id(self, instance_id):
-        return int(instance_id // 1000)
+        return int(instance_id // self.encode)
 
     def get_instance_verts(self, mesh_vert_instances, instance_id):
         return (mesh_vert_instances == instance_id).sum()
@@ -155,7 +156,7 @@ def read_instance_prediction_file(filename, pred_path):
     return instance_info
 
 
-def get_instances(ids, class_ids, class_labels, id2label, coords=None):
+def get_instances(ids, class_ids, class_labels, id2label, coords=None, dataset = 'scannet200'):
     instances = {}
     for label in class_labels:
         instances[label] = []
@@ -163,7 +164,11 @@ def get_instances(ids, class_ids, class_labels, id2label, coords=None):
     for id in instance_ids:
         if id == 0:
             continue
-        inst = Instance(ids, id, coords=coords)
+        if dataset == 'scannetpp':
+            inst = Instance(ids, id, coords=coords, encode = 10000)
+        else:
+            inst = Instance(ids, id, coords=coords, encode = 1000)
+
         if inst.label_id in class_ids:
             instances[id2label[inst.label_id]].append(inst.to_dict())
     return instances

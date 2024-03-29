@@ -126,6 +126,9 @@ Dataset
 │    │    |    │    ├──pose                                  <- folder with camera poses
 │    │    │    │    │    00000.txt
 │    │    │    │    │    ...
+│    │    |    │    ├──intrinsic                             <- folder with intrinsic (In Scannet200, intrinsic same across all views)
+│    │    │    │    │    00000.txt
+│    │    │    │    │    ...
 │    │    |    |    intrinsic.txt (image intrinsic)
 │    │    |    ....
 │    │    |    intrinsic_depth.txt (depth intrinsic)         <- Scannet intrinsic ~ depth img

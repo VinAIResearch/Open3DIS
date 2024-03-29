@@ -17,7 +17,7 @@ data:
   dataset_name: 'scannetpp'
   split_path: './open3dis/dataset/scannetpp_val.txt'
   datapath: '../Dataset/Scannetpp/Scannetpp_2D_5interval/val' # RGB-D + pose path
-  gt_pth: '../Dataset/Scannetpp/Scannetpp_3D/val' # gt path
+  gt_pth: '../Dataset/Scannetpp/Scannetpp_3D/val/groundtruth' # gt path
   original_ply: '../Dataset/Scannetpp/Scannetpp_3D/val/original_ply_files' # raw pcl
   spp_path: '../Dataset/Scannetpp/Scannetpp_3D/val/superpoints' # spp path
   cls_agnostic_3d_proposals_path: '../Dataset/Scannetpp/Scannetpp_3D/val/isbnet_clsagnostic_scannetpp' # cls agnostic 3D proposals
@@ -28,10 +28,12 @@ data:
   img_interval: 2
   num_classes: 1659
 
+# ( iou | recall ) & dc_feats
 cluster:
-  visi: 0.9
-  simi: 0.9
-  point_visi: 0.2
+  visi: 0.7 # iou
+  recall: 1.0 # recall
+  simi: 0.0 # dc_feats
+  point_visi: 0.0
   valid_points: 50
 
 refine_grounding:
@@ -52,7 +54,7 @@ exp:
   save_dir: '../exp_scannetpp'
 
 proposals:
-  p2d: False # 2D branch
+  p2d: True # 2D branch
   p3d: True # 3D branch
   agnostic: False # returning class-agnostic masks (without class + scores)
   refined: True # feature branch, setting this True uses refined feature, else uses feature from 2D branch

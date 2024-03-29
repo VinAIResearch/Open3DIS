@@ -47,9 +47,13 @@ class ScanNetReader(object):
         # get intrinsics only in Scannet
         self.global_intrinsic = np.array([[571.623718, 0.0, 319.5], [0.0, 571.623718, 239.5], [0.0, 0.0, 1.0]])
         self.depth_scale = 1000.0
-
+        
         intrinsic_file = os.path.join(self.root_path, "intrinsic.txt")
-        self.intrinsic = np.loadtxt(intrinsic_file)
+        try:
+            self.intrinsic = np.loadtxt(intrinsic_file)
+        except:
+            self.intrinsic = None
+            print('No global intrinsic')
 
         self.scene_pcd_path = os.path.join(cfg.data.original_ply, f"{self.scene_id}.ply")
 
@@ -101,15 +105,24 @@ class ScanNetReader(object):
         fnamedepth = "{}.png".format(frame_id)
         fnamecolor = "{}.jpg".format(frame_id)
         fnamepose = "{}.txt".format(frame_id)
+        fnameintrinsic = "{}.txt".format(frame_id)
+
         depth_image_path = os.path.join(self.root_path, "depth", fnamedepth)
         image_path = os.path.join(self.root_path, "color", fnamecolor)
         pose_path = os.path.join(self.root_path, "pose", fnamepose)
-
+        
+        
         frame["depth_path"] = depth_image_path
         frame["image_path"] = image_path
         frame["pose_path"] = pose_path
 
         frame["intrinsics"] = self.intrinsic
         frame["global_intrinsic"] = self.global_intrinsic
+        
+        try:
+            frame_intrinsic = os.path.join(self.root_path, "intrinsic", fnameintrinsic)
+            frame["translated_intrinsics"] = np.loadtxt(frame_intrinsic) # for scannetpp only
+        except:
+            pass
 
         return frame

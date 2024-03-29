@@ -29,9 +29,10 @@ data:
   num_classes: 198
 
 cluster:
-  visi: 0.9
-  simi: 0.9
-  point_visi: 0.2
+  visi: 0.7 # iou
+  recall: 1.0 # recall
+  simi: 0.7 # dc_feats
+  point_visi: 0.0
   valid_points: 50
 
 refine_grounding:
@@ -43,8 +44,8 @@ final_instance:
   scale_semantic_score: 300.0
 
 exp:
-  exp_name: "version_test"
-  mask2d_output: 'maskGdino' # 2D mask + pc features
+  exp_name: "version_sam"
+  mask2d_output: 'maskSam' # 2D mask + pc features
   grounded_feat_output: 'grounded_feat' # first stage feature
   refined_grounded_feat_output: 'refined_grounded_feat' # second stage feature
   clustering_3d_output: 'hier_agglo' # 2Dlift path
@@ -52,7 +53,7 @@ exp:
   save_dir: '../exp'
 
 proposals:
-  p2d: False # 2D branch
+  p2d: True # 2D branch
   p3d: True # 3D branch
   agnostic: False # returning class-agnostic masks (without class + scores)
   refined: True # feature branch, setting this True uses refined feature, else uses feature from 2D branch

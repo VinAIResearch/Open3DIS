@@ -21,6 +21,10 @@ from tqdm import tqdm, trange
 class ScanNetEval(object):
     def __init__(self, class_labels, iou_type=None, use_label=True, dataset_name="scannet200"):
         self.dataset_name = dataset_name
+        if self.dataset_name == 'scannetpp':
+            self.encode_value = 10000
+        else:
+            self.encode_value = 1000
 
         self.valid_class_labels = class_labels
         self.valid_class_ids = np.arange(len(class_labels)) + 1
@@ -81,7 +85,7 @@ class ScanNetEval(object):
                         gt_instances = [
                             gt
                             for gt in gt_instances
-                            if gt["instance_id"] >= 1000
+                            if gt["instance_id"] >= self.encode_value
                             and gt["vert_count"] >= min_region_size
                             and gt["med_dist"] <= distance_thresh
                             and gt["dist_conf"] >= distance_conf
@@ -140,7 +144,7 @@ class ScanNetEval(object):
                                 num_ignore = pred["void_intersection"]
                                 for gt in pred["matched_gt"]:
                                     # group?
-                                    if gt["instance_id"] < 1000:
+                                    if gt["instance_id"] < self.encode_value:
                                         num_ignore += gt["intersection"]
                                     # small ground truth instances
                                     if (
@@ -262,17 +266,35 @@ class ScanNetEval(object):
             gts_sem = gts_sem - 1 + 1
         elif self.dataset_name == "stpls3d":
             gts_sem = gts_sem - 1 + 1
-        else:
+        elif self.dataset_name == 'scannetpp':
+            pass
+        else: # scanetpp (account for 100+ semantic classes ~)
             gts_sem = gts_sem + 1
-        gts_sem[gts_sem < 0] = 0
+
+        if self.dataset_name != 'scannetpp':
+            gts_sem[gts_sem < 0] = 0
+
         gts_ins = gts_ins + 1
-        ignore_inds = gts_ins < 0
+
+        if self.dataset_name == 'scannetpp': # class-agnostic
+            gts_sem -= 1
+            sem_ignore = np.unique(gts_sem[np.where(gts_ins==-99)])
+            for ignore_class in sem_ignore:
+                tmp = (gts_sem == ignore_class)
+                gts_ins[tmp] = -1
+                gts_sem[tmp] = 0
+            gts_sem[gts_sem <= 0] = 0
+            ignore_inds = gts_ins <= 0
+            gts_ins[gts_ins <= 0] = 0
+        else:
+            ignore_inds = gts_ins < 0
+
         # scannet encoding rule
-        gts = gts_sem * 1000 + gts_ins
+        gts = gts_sem * self.encode_value + gts_ins
         gts[ignore_inds] = 0
         ############################################
 
-        gt_instances = get_instances(gts, self.valid_class_ids, self.valid_class_labels, self.id2label)
+        gt_instances = get_instances(gts, self.valid_class_ids, self.valid_class_labels, self.id2label, dataset = self.dataset_name)
         # associate
         if self.use_label:
             gt2pred = deepcopy(gt_instances)
@@ -295,7 +317,7 @@ class ScanNetEval(object):
             pred2gt[label] = []
         num_pred_instances = 0
         # mask of void labels in the groundtruth
-        bool_void = np.logical_not(np.in1d(gts // 1000, self.valid_class_ids))
+        bool_void = np.logical_not(np.in1d(gts // self.encode_value, self.valid_class_ids))
         # go thru all prediction masks
         for pred in preds:
             if self.use_label:
@@ -349,7 +371,7 @@ class ScanNetEval(object):
     def assign_boxes_for_scan(self, preds, gts, coords):
         """get gt instances, only consider the valid class labels even in class
         agnostic setting."""
-        gt_instances = get_instances(gts, self.valid_class_ids, self.valid_class_labels, self.id2label, coords=coords)
+        gt_instances = get_instances(gts, self.valid_class_ids, self.valid_class_labels, self.id2label, coords=coords, dataset = self.dataset_name)
         # associate
         if self.use_label:
             gt2pred = deepcopy(gt_instances)
@@ -372,7 +394,7 @@ class ScanNetEval(object):
             pred2gt[label] = []
         num_pred_instances = 0
         # mask of void labels in the groundtruth
-        # bool_void = np.logical_not(np.in1d(gts // 1000, self.valid_class_ids))
+        # bool_void = np.logical_not(np.in1d(gts // self.encode_value, self.valid_class_ids))
         # go thru all prediction masks
         for pred in preds:
             if self.use_label:
@@ -515,7 +537,7 @@ class ScanNetEval(object):
             gt_list:
                 for each scan:
                     for each point:
-                        gt_id = class_id * 1000 + instance_id
+                        gt_id = class_id * self.encode_value + instance_id
         """
         # pool = mp.Pool(processes=16)
         # results = pool.starmap(self.assign_instances_for_scan, zip(pred_list, gt_sem_list, gt_ins_list))
@@ -536,7 +558,7 @@ class ScanNetEval(object):
         # print
         self.write_result_file(avgs, os.path.join(exp_path, "result.txt"))
 
-        if self.dataset_name == "scannet200":
+        if self.dataset_name == "scannet200" and self.use_label == True:
             self.print_ap_scannet200(avgs)
         else:
             self.print_results(avgs)
@@ -553,7 +575,7 @@ class ScanNetEval(object):
             gt_list:
                 for each scan:
                     for each point:
-                        gt_id = class_id * 1000 + instance_id
+                        gt_id = class_id * self.encode_value + instance_id
         """
         pool = mp.Pool(processes=16)
         results = pool.starmap(self.assign_boxes_for_scan, zip(pred_list, gt_list, coords_list))

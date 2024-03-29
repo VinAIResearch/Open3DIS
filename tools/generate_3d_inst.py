@@ -238,6 +238,11 @@ if __name__ == "__main__":
     save_dir_final = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.final_output)
     os.makedirs(save_dir_final, exist_ok=True)
 
+    # Multiprocess logger
+    if os.path.exists("tracker_lifted.txt") == False:
+        with open("tracker_lifted.txt", "w") as file:
+            file.write("Processed Scenes .\n")
+
     with torch.cuda.amp.autocast(enabled=cfg.fp16):
         if evaluate_openvocab:
             if cfg.data.dataset_name == 'scannet200':
@@ -247,15 +252,28 @@ if __name__ == "__main__":
             gtsem = []
             gtinst = []
             res = []
-        if evaluate_agnostic:
-            pass  # not yet
 
         for scene_id in tqdm(scene_ids):
             print("Process", scene_id)
-
+           # Tracker
+            done = False
+            path = scene_id + ".pth"
+            with open("tracker_lifted.txt", "r") as file:
+                lines = file.readlines()
+                lines = [line.strip() for line in lines]
+                for line in lines:
+                    if path in line:
+                        done = True
+                        break
+            if done == True:
+                print("existed " + path)
+                continue
+            ## Write append each line
+            with open("tracker_lifted.txt", "a") as file:
+                file.write(path + "\n")
             #############################################
             # NOTE hierarchical agglomerative clustering
-            if False:
+            if True:
                 cluster_dict = None
                 proposals3d, confidence = process_hierarchical_agglomerative(scene_id, cfg)
                 cluster_dict = {
@@ -266,21 +284,22 @@ if __name__ == "__main__":
             cluster_dict = torch.load(os.path.join(save_dir_cluster, f"{scene_id}.pth"))
             #############################################
             # NOTE get final instances
-            masks_final, cls_final, scores_final = get_final_instances(
-                cfg,
-                text_features,
-                cluster_dict=cluster_dict,
-                use_2d_proposals=cfg.proposals.p2d,
-                use_3d_proposals=cfg.proposals.p3d,
-                only_instance=cfg.proposals.agnostic,
-            )
-            final_dict = {
-                "ins": rle_encode_gpu_batch(masks_final),
-                "conf": scores_final.cpu(),
-                "final_class": cls_final.cpu(),
-            }
-            # Final instance
-            torch.save(final_dict, os.path.join(save_dir_final, f"{scene_id}.pth"))
+            if False:
+                masks_final, cls_final, scores_final = get_final_instances(
+                    cfg,
+                    text_features,
+                    cluster_dict=cluster_dict,
+                    use_2d_proposals=cfg.proposals.p2d,
+                    use_3d_proposals=cfg.proposals.p3d,
+                    only_instance=cfg.proposals.agnostic,
+                )
+                final_dict = {
+                    "ins": rle_encode_gpu_batch(masks_final),
+                    "conf": scores_final.cpu(),
+                    "final_class": cls_final.cpu(),
+                }
+                # Final instance
+                torch.save(final_dict, os.path.join(save_dir_final, f"{scene_id}.pth"))
             #############################################
 
             # NOTE Evaluation openvocab

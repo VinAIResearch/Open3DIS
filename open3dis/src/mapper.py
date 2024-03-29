@@ -8,7 +8,7 @@ import torch_scatter
 
 class PointCloudToImageMapper(object):
     def __init__(
-        self, image_dim, visibility_threshold=0.15, cut_bound=0, intrinsics=None, device="cpu", use_torch=False
+        self, image_dim, visibility_threshold=0.05, cut_bound=0, intrinsics=None, device="cpu", use_torch=False
     ):
 
         self.image_dim = image_dim
@@ -29,7 +29,9 @@ class PointCloudToImageMapper(object):
         :return: mapping, N x 3 format, (H,W,mask)
         """
         device = coords.device
-        if self.intrinsics is not None:  # global intrinsics
+        if intrinsic is not None: # adjust intrinsic
+            self.intrinsics = intrinsic
+        else:
             intrinsic = self.intrinsics
         camera_to_world = torch.from_numpy(camera_to_world).to(device).float()
 
@@ -51,7 +53,7 @@ class PointCloudToImageMapper(object):
         )
         if depth is not None:
             depth = torch.from_numpy(depth).to(device)
-            occlusion_mask = torch.abs(depth[pi[1][inside_mask], pi[0][inside_mask]] - p[2][inside_mask]) <= 0.1
+            occlusion_mask = torch.abs(depth[pi[1][inside_mask], pi[0][inside_mask]] - p[2][inside_mask]) <= self.vis_thres
             inside_mask[inside_mask == True] = occlusion_mask
         else:
             front_mask = p[2] > 0  # make sure the depth is in front

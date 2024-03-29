@@ -33,14 +33,22 @@ def custom_scatter_mean(input_feats, indices, dim=0, pool=True, output_type=None
 
     original_type = input_feats.dtype
     with torch.cuda.amp.autocast(enabled=False):
-        out_feats = torch_scatter.scatter_mean(input_feats.to(torch.float32), indices, dim=dim)
-
+        batch_size = 100
+        start = 0
+        out_feats = []
+        while start < indices.shape[0]:
+            end = min(start + batch_size, indices.shape[0])
+            out_feats.append(torch_scatter.scatter_mean(input_feats.to(torch.float32)[start:end].cuda(), indices[start:end], dim=dim).cpu())
+            torch.cuda.empty_cache()
+            start += batch_size
+        out_feats = torch.cat(out_feats)
     if output_type is None:
         out_feats = out_feats.to(original_type)
     else:
         out_feats = out_feats.to(output_type)
 
     return out_feats
+
 
 
 def resolve_overlapping_3d_masks(pred_masks, pred_scores, score_thresh=0.5, device="cuda:0"):
@@ -204,6 +212,11 @@ def compute_relation_matrix_self(instance_pt_mask, spp, sieve):
     inliers = instance_pt_mask_tmp.sum(1, keepdims=True).to(torch.float64).cuda()
     union = (inliers + inliers.T - intersection).to(torch.float64)
     iou_matrix = intersection / (union + 1e-6)
+
+    if (iou_matrix < 0.0).sum() > 0:
+        print('wrong assert')
+        breakpoint() # wrong assert
+
     precision_matrix = intersection / (inliers.T + 1e-6)
     recall_matrix = intersection / (inliers + 1e-6)
     torch.cuda.empty_cache()

@@ -178,7 +178,7 @@ def refine_grounding_features(
         if "scannetpp" in cfg.data.dataset_name:  # Map on image resolution in Scannetpp only
             depth = cv2.resize(depth, (img_dim[0], img_dim[1]))
             mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
-            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["translated_intrinsics"])
 
         if "scannet200" in cfg.data.dataset_name:
             mapping = torch.ones([n_points, 4], dtype=int, device=points.device)

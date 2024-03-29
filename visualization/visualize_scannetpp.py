@@ -117,7 +117,7 @@ class VisualizationScannetpp:
         instance = dic['ins']
         instance = torch.stack([torch.tensor(rle_decode(ins)) for ins in instance])
         conf2d = dic['conf'] # confidence really doesn't affect much (large mask -> small conf)
-        pallete =  generate_palette(int(2e3 + 1))
+        pallete =  generate_palette(int(6e3 + 1))
         tt_col = self.color.copy()
         limit = 10
         for i in range(0, instance.shape[0]):
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     
     '''
     # Scene ID to visualize
-    scene_id = '09c1414f1b'
+    scene_id = '0d2ee665be'
 
     ##### The format follows the dataset tree
     ## 1
@@ -183,10 +183,10 @@ if __name__ == "__main__":
     check_3dviz = False
     mask3d_path = '../Dataset/Scannetpp/Scannetpp_3D/val/isbnet_clsagnostic_scannetpp/' + scene_id + '.pth'
     ## 4
-    check_2dviz = False
+    check_2dviz = True
     mask2d_path = '../exp_scannetpp/version_test/hier_agglo/' + scene_id + '.pth'
     ## 5
-    check_finalviz = True
+    check_finalviz = False
     agnostic_path = '../exp_scannetpp/version_test/final_result_hier_agglo/' + scene_id + '.pth'
     
 
@@ -202,7 +202,7 @@ if __name__ == "__main__":
     if check_superpointviz:
         VIZ.superpointviz(spp_path)
     if check_gtviz:
-        VIZ.gtviz(gt_path, specific = True)
+        VIZ.gtviz(gt_path, specific = False)
     if check_3dviz:
         VIZ.vizmask3d(mask3d_path, specific = False)
     if check_2dviz:

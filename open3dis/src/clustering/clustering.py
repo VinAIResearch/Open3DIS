@@ -36,7 +36,20 @@ from scipy.spatial.distance import pdist, squareform
 from sklearn.cluster import DBSCAN
 from torchmetrics.functional import pairwise_cosine_similarity
 from tqdm import tqdm, trange
+import matplotlib.pyplot as plt
 
+
+def show_mask(mask, ax, random_color=False):
+    """
+    Mask visualization
+    """
+    if random_color:
+        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+    else:
+        color = np.array([30 / 255, 144 / 255, 255 / 255, 0.6])
+    h, w = mask.shape[-2:]
+    mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
+    ax.imshow(mask_image)
 
 # Hierachical merge
 def hierarchical_agglomerative_clustering(
@@ -48,7 +61,8 @@ def hierarchical_agglomerative_clustering(
     n_points,
     sieve,
     detic=False,
-    visi=0.9,
+    visi=0.7,
+    reca = 1.0,
     simi=0.5,
 ):
     global num_point, dc_feature_matrix, dc_feature_spp
@@ -126,10 +140,10 @@ def hierarchical_agglomerative_clustering(
 
     mid = int((left + right) / 2)
     graph_1_onehot, weight_1 = hierarchical_agglomerative_clustering(
-        pcd_list, left, mid, spp, n_spp, n_points, sieve, detic=detic
+        pcd_list, left, mid, spp, n_spp, n_points, sieve, detic=detic, visi = visi, reca = reca, simi = simi
     )
     graph_2_onehot, weight_2 = hierarchical_agglomerative_clustering(
-        pcd_list, mid + 1, right, spp, n_spp, n_points, sieve, detic=detic
+        pcd_list, mid + 1, right, spp, n_spp, n_points, sieve, detic=detic, visi = visi, reca = reca, simi = simi
     )
 
     if len(graph_1_onehot) == 0 and len(graph_2_onehot) == 0:
@@ -149,12 +163,15 @@ def hierarchical_agglomerative_clustering(
     graph_feat_matrix = pairwise_cosine_similarity(graph_feat, graph_feat)
 
     iou_matrix, _, recall_matrix = compute_relation_matrix_self(new_graph, spp, sieve)
-    adjacency_matrix = ((iou_matrix >= 0.9) | (recall_matrix >= 0.9)) & (graph_feat_matrix >= 0.9)
-    # adjacency_matrix = ((iou_matrix >= 0.8) | (recall_matrix >= 0.8)) & (graph_feat_matrix >= 0.8)
-    # adjacency_matrix = ((iou_matrix >= visi) | (recall_matrix >= visi)) & (graph_feat_matrix >= 0.9)
-    # adjacency_matrix = ((iou_matrix >= visi) | (recall_matrix >= visi)) & (graph_feat_matrix >= simi)
-    # adjacency_matrix = ((iou_matrix >= 0.9) | (recall_matrix >= 0.9))
+    
+    #####
+    adjacency_matrix = (iou_matrix >= visi)
+    if reca < 0.98:
+        adjacency_matrix |= (recall_matrix >= reca)    
+    if simi > 0.1: # scannetpp using 3D features from 3D backbone pretrained scannet200 yeilds not good results
+        adjacency_matrix &= (graph_feat_matrix >= simi)
     adjacency_matrix = adjacency_matrix | adjacency_matrix.T
+    #####
 
     # if adjacency_matrix
     if adjacency_matrix.sum() == new_graph.shape[0]:
@@ -168,7 +185,8 @@ def hierarchical_agglomerative_clustering(
     merged_weight = torch.zeros((M, graph_2_onehot.shape[1]), dtype=torch.float, device=graph_2_onehot.device)
 
     for i, cluster in enumerate(connected_components):
-        merged_instance[i] = new_graph[cluster].sum(0)
+        # merged_instance[i] = new_graph[cluster].sum(0)
+        merged_instance[i] = (new_graph[cluster].sum(0)!=0).to(torch.int32)
         merged_weight[i] = new_weight[cluster].mean(0)
 
     new_graph = merged_instance
@@ -321,6 +339,7 @@ def process_hierarchical_agglomerative(scene_id, cfg):
 
     visi = cfg.cluster.visi
     simi = cfg.cluster.simi
+    reca = cfg.cluster.recall
 
     exp_path = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name)
 
@@ -369,10 +388,12 @@ def process_hierarchical_agglomerative(scene_id, cfg):
     for i in trange(0, len(scannet_loader), cfg.data.img_interval):
         frame = scannet_loader[i]
         frame_id = frame["frame_id"]
-
         if frame_id not in groundedsam_data_dict.keys():
-            continue
-
+            if 'frame_'+str(int(frame_id) * 10) in groundedsam_data_dict.keys(): # conflict resolve generating scannet++ issues
+                frame_id = 'frame_'+str(int(frame_id) * 10)
+            else:
+                print('skip: ', frame_id)
+                continue
         groundedsam_data = groundedsam_data_dict[frame_id]
 
         pose = scannet_loader.read_pose(frame["pose_path"])
@@ -380,7 +401,7 @@ def process_hierarchical_agglomerative(scene_id, cfg):
         rgb_img = scannet_loader.read_image(frame["image_path"])
 
         rgb_img_dim = rgb_img.shape[:2]
-
+        
         encoded_masks = groundedsam_data["masks"]
 
         masks = None
@@ -390,14 +411,35 @@ def process_hierarchical_agglomerative(scene_id, cfg):
                 masks.append(torch.tensor(pycocotools.mask.decode(mask)))
             masks = torch.stack(masks, dim=0).cpu() # cuda fast but OOM
 
+        if False:
+            # draw output image
+            image = rgb_img
+            plt.figure(figsize=(10, 10))
+            plt.imshow(image)
+            for mask in masks[:5]:
+                show_mask(mask.cpu().numpy(), plt.gca(), random_color=True)
+            plt.axis("off")
+            # plot out
+            try:
+                os.makedirs("../debug/" + scene_id)
+            except:
+                pass
+            plt.savefig(
+                os.path.join("../debug/" + scene_id + "/sam_" + str(i) + ".jpg"),
+                bbox_inches="tight",
+                dpi=300,
+                pad_inches=0.0,
+            )
+
+
         if "scannetpp" in cfg.data.dataset_name:  # Map on image resolution in Scannetpp only
             depth = cv2.resize(depth, (img_dim[0], img_dim[1]))
             mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
-            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["translated_intrinsics"])
 
         if "scannet200" in cfg.data.dataset_name:
             mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
-            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth) # global intrinsic
             new_mapping = scaling_mapping(
                 torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
             )
@@ -411,22 +453,26 @@ def process_hierarchical_agglomerative(scene_id, cfg):
     torch.cuda.empty_cache()
     num_instance = 0
     
-    groups, weights = hierarchical_agglomerative_clustering(
-        pcd_list, 0, len(pcd_list) - 1, spp, n_spp, n_points, sieve, detic=False, visi=visi, simi=simi
-    )
+    groups, weights = hierarchical_agglomerative_clustering(pcd_list, 0, len(pcd_list) - 1, spp, n_spp, n_points, sieve, detic=False, visi=visi, reca = reca, simi=simi)
 
     if len(groups) == 0:
         return None, None
 
-    proposals_pred = groups[:, spp]  # .bool()
-
-    inst_visibility = proposals_pred / visibility.clip(min=1e-6)[None, :]
-    proposals_pred[inst_visibility < cfg.cluster.point_visi] = 0
-
     confidence = (groups.bool() * weights).sum(dim=1) / groups.sum(dim=1)
-
+    groups = groups.cpu().to(torch.int64)
+    proposals_pred = groups[:, spp]  # .bool()
     del groups, weights
+    torch.cuda.empty_cache()
 
+    ## These lines take a lot of memory # achieveing in paper result-> unlock this
+    if cfg.cluster.point_visi > 0.1:
+        inst_visibility = (proposals_pred.cpu().to(torch.int64) / visibility.clip(min=1e-6)[None, :].cpu().to(torch.float64)).to(torch.float64).cpu()
+        proposals_pred = proposals_pred.cpu()
+        torch.cuda.empty_cache()    
+        proposals_pred[inst_visibility < cfg.cluster.point_visi] = 0
+    else: # pointvis==0.0 # Scannetpp
+        pass
+    
     proposals_pred = proposals_pred.bool()
 
     proposals_pred_final = custom_scatter_mean(
@@ -434,7 +480,7 @@ def process_hierarchical_agglomerative(scene_id, cfg):
         spp[None, :].expand(len(proposals_pred), -1),
         dim=-1,
         pool=True,
-        output_type=torch.float32,
+        output_type=torch.float64,
     )
     proposals_pred = (proposals_pred_final >= 0.5)[:, spp]
 
