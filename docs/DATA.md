@@ -163,7 +163,8 @@ pretrains
 
 ## Replica
 
-We special thank Ayca Takmaz for providing groundtruth of Replica dataset for evaluation.
+We special thank Ayca Takmaz for providing groundtruth of Replica dataset for evaluation. We also prepare the preprocessed data of Replica (including 8 scenes) at [OneDrive](https://umass-my.sharepoint.com/:u:/g/personal/tdngo_umass_edu/ERkM9wSgo1BJoZqNOwBuhlABgw42v5P5oiZCChjA3ZQ1og?e=bIYEKx). Download and extract it to `Dataset/Replica`.
+
 ```
 Open3DIS <-- (you are here)
 Dataset
@@ -184,7 +185,7 @@ Dataset
 │    ├── replica_3d 
 │    │    │    office0.pth
 │    │    │    ...
-│    ├── replica_spp 
+│    ├── replica_spp_new 
 │    │    │    office0.pth
 │    │    │    ...
 │    ├── cls_agnostic_replica_scannet200 
