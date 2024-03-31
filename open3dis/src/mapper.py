@@ -8,7 +8,7 @@ import torch_scatter
 
 class PointCloudToImageMapper(object):
     def __init__(
-        self, image_dim, visibility_threshold=0.05, cut_bound=0, intrinsics=None, device="cpu", use_torch=False
+        self, image_dim, visibility_threshold=0.1, cut_bound=0, intrinsics=None, device="cpu", use_torch=False
     ):
 
         self.image_dim = image_dim

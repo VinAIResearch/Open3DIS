@@ -160,3 +160,36 @@ pretrains
 |   ├── groundingdino_swint_ogc.pth
 |   ├── sam_vit_h_4b8939.pth
 ```
+
+## Replica
+
+We special thank Ayca Takmaz for providing groundtruth of Replica dataset for evaluation.
+```
+Open3DIS <-- (you are here)
+Dataset
+├── Replica
+############## 2D root folder with default image sampling factor: 5 ##############
+│    ├── replica_2d 
+│    │    ├── office0             
+│    │    |    ├── color
+│    │    │    │    │    0.jpg
+│    │    │    │    │    ...
+│    │    |    ├── depth
+│    │    │    │    │    0.png
+│    │    │    │    │    ...
+│    │    |    ├── pose     
+│    │    │    │    │    0.txt
+│    │    │    │    │    ...
+│    │    ├── ...
+│    ├── replica_3d 
+│    │    │    office0.pth
+│    │    │    ...
+│    ├── replica_spp 
+│    │    │    office0.pth
+│    │    │    ...
+│    ├── cls_agnostic_replica_scannet200 
+│    │    │    office0.pth
+│    │    │    ...
+│    ├── dc_feat_replica_scannet200 
+│    │    │    office0.pth
+│    │    │    ...

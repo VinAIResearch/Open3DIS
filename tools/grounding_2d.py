@@ -18,24 +18,29 @@ import open_clip
 import pycocotools.mask
 import torch
 import yaml
+from munch import Munch
+from PIL import Image, ImageDraw, ImageFont
+from tqdm import tqdm, trange
 
 # Grounding DINO
 from detectron2.structures import BitMasks
 from groundingdino.models import build_model
 from groundingdino.util.slconfig import SLConfig
 from groundingdino.util.utils import clean_state_dict, get_phrases_from_posmap
-from munch import Munch
+
+# SAM
+from segment_anything import SamPredictor, build_sam, build_sam_hq
+
 from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200 # Scannet200
+from open3dis.dataset.scannetpp import SEMANTIC_CAT_SCANNET_PP # ScannetPP
+from open3dis.dataset.replica import INSTANCE_CAT_REPLICA
 from open3dis.dataset.scannet_loader import ScanNetReader, scaling_mapping
+from open3dis.dataset import build_dataset
 
 #### Open3DIS util
 from open3dis.src.fusion_util import NMS_cuda
 from open3dis.src.mapper import PointCloudToImageMapper
-from PIL import Image, ImageDraw, ImageFont
 
-# SAM
-from segment_anything import SamPredictor, build_sam, build_sam_hq
-from tqdm import tqdm, trange
 
 ############################################## Grounding DINO + SAM ##############################################
 '''
@@ -163,15 +168,17 @@ def gen_grounded_mask_and_feat(
     Returning boxes and logits scores for each chunk in the caption with box & text threshoding
     """
     scene_dir = os.path.join(cfg.data.datapath, scene_id)
-    scannet_loader = ScanNetReader(root_path=scene_dir, cfg=cfg)
+
+    loader = build_dataset(root_path=scene_dir, cfg=cfg)
+    # scannet_loader = ScanNetReader(root_path=scene_dir, cfg=cfg)
 
     # Pointcloud Image mapper
     img_dim = cfg.data.img_dim
     pointcloud_mapper = PointCloudToImageMapper(
-        image_dim=img_dim, intrinsics=scannet_loader.global_intrinsic, cut_bound=cfg.data.cut_num_pixel_boundary
+        image_dim=img_dim, intrinsics=loader.global_intrinsic, cut_bound=cfg.data.cut_num_pixel_boundary
     )
 
-    points = scannet_loader.read_pointcloud()
+    points = loader.read_pointcloud()
     points = torch.from_numpy(points).cuda()
     n_points = points.shape[0]
 
@@ -183,8 +190,8 @@ def gen_grounded_mask_and_feat(
     else:
         grounded_features = None
 
-    for i in trange(0, len(scannet_loader), cfg.data.img_interval):
-        frame = scannet_loader[i]
+    for i in trange(0, len(loader), cfg.data.img_interval):
+        frame = loader[i]
         frame_id = frame["frame_id"]  # str
         image_path = frame["image_path"]  # str
 
@@ -294,16 +301,16 @@ def gen_grounded_mask_and_feat(
 
         if False:
             # draw output image
-            image = scannet_loader.read_image(image_path)
+            image = loader.read_image(image_path)
             plt.figure(figsize=(10, 10))
             plt.imshow(image)
             for mask in masks:
                 show_mask(mask.cpu().numpy(), plt.gca(), random_color=True)
             plt.axis("off")
             # plot out
-            os.makedirs("../debug/" + scene_id)
+            os.makedirs("./debug/" + scene_id, exist_ok=True)
             plt.savefig(
-                os.path.join("../debug/" + scene_id + "/sam_" + str(i) + ".jpg"),
+                os.path.join("./debug/" + scene_id + "/sam_" + str(i) + ".jpg"),
                 bbox_inches="tight",
                 dpi=300,
                 pad_inches=0.0,
@@ -317,21 +324,28 @@ def gen_grounded_mask_and_feat(
         }
 
         if gen_feat:
-            pose = scannet_loader.read_pose(frame["pose_path"])
-            depth = scannet_loader.read_depth(frame["depth_path"])
+            pose = loader.read_pose(frame["pose_path"])
+            depth = loader.read_depth(frame["depth_path"])
             
             if "scannetpp" in cfg.data.dataset_name:  # Map on image resolution in Scannetpp only
                 depth = cv2.resize(depth, (img_dim[0], img_dim[1]))
                 mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
                 mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["translated_intrinsics"])
 
-            if "scannet200" in cfg.data.dataset_name:
+            elif "scannet200" in cfg.data.dataset_name:
                 mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
                 mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
                 new_mapping = scaling_mapping(
                     torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
                 )
                 mapping[:, 1:4] = torch.cat((new_mapping, mapping[:, 3].unsqueeze(1)), dim=1)
+
+            elif "replica" in cfg.data.dataset_name:
+                mapping = torch.ones([n_points, 4], dtype=int, device='cuda')
+                mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+
+            else:
+                raise ValueError(f"Unknown dataset: {cfg.data.dataset_name}")
 
             idx = torch.where(mapping[:, 3] == 1)[0]
 
@@ -367,6 +381,13 @@ if __name__ == "__main__":
     with open(cfg.data.split_path, "r") as file:
         scene_ids = sorted([line.rstrip("\n") for line in file])
 
+    if cfg.data.dataset_name == 'scannet200':
+        class_names = INSTANCE_CAT_SCANNET_200
+    elif cfg.data.dataset_name == 'scannetpp':
+        class_names = SEMANTIC_CAT_SCANNET_PP    
+    elif cfg.data.dataset_name == 'replica':
+        class_names = INSTANCE_CAT_REPLICA
+
     # Directory Init
     save_dir = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.mask2d_output)
     save_dir_feat = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.grounded_feat_output)
@@ -377,21 +398,25 @@ if __name__ == "__main__":
     with torch.cuda.amp.autocast(enabled=cfg.fp16):
         for scene_id in tqdm(scene_ids):
             # Tracker
-            done = False
-            path = scene_id + ".pth"
-            with open("tracker_2d.txt", "r") as file:
-                lines = file.readlines()
-                lines = [line.strip() for line in lines]
-                for line in lines:
-                    if path in line:
-                        done = True
-                        break
-            if done == True:
-                print("existed " + path)
-                continue
-            # Write append each line
-            with open("tracker_2d.txt", "a") as file:
-                file.write(path + "\n")
+            # done = False
+            # path = scene_id + ".pth"
+            # with open("tracker_2d.txt", "r") as file:
+            #     lines = file.readlines()
+            #     lines = [line.strip() for line in lines]
+            #     for line in lines:
+            #         if path in line:
+            #             done = True
+            #             break
+            # if done == True:
+            #     print("existed " + path)
+            #     continue
+            # # Write append each line
+            # with open("tracker_2d.txt", "a") as file:
+            #     file.write(path + "\n")
+
+            # if os.path.exists(os.path.join(save_dir, f"{scene_id}.pth")): 
+            #     print(f"Skip {scene_id} as it already exists")
+            #     continue
 
             print("Process", scene_id)
             grounded_data_dict, grounded_features = gen_grounded_mask_and_feat(
@@ -400,7 +425,7 @@ if __name__ == "__main__":
                 clip_preprocess,
                 grounding_dino_model,
                 sam_predictor,
-                class_names=INSTANCE_CAT_SCANNET_200,
+                class_names=class_names,
                 cfg=cfg,
             )
 

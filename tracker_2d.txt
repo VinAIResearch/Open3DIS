@@ -49,3 +49,9 @@ f3685d06a9.pth
 f3d64c30f8.pth
 f9f95681fd.pth
 fb5a96b1a2.pth
+office0.pth
+office1.pth
+office2.pth
+office3.pth
+office4.pth
+room0.pth

@@ -2,9 +2,6 @@
 # Adapted by Ayca Takmaz, July 2023 OpenSUN3D Challenge
 # Adapted for Scannet by PhucNDA, Aug 2023 Open3DIS
 
-import bisect
-import copy
-import glob
 import os
 
 import cv2
@@ -45,7 +42,10 @@ class ScanNetReader(object):
         print("Number of original frames:", len(self.frame_ids))
 
         # get intrinsics only in Scannet
-        self.global_intrinsic = np.array([[571.623718, 0.0, 319.5], [0.0, 571.623718, 239.5], [0.0, 0.0, 1.0]])
+        self.global_intrinsic = np.array(
+            [[571.623718, 0.0, 319.5], 
+             [0.0, 571.623718, 239.5],
+             [0.0, 0.0, 1.0]])
         self.depth_scale = 1000.0
         
         intrinsic_file = os.path.join(self.root_path, "intrinsic.txt")

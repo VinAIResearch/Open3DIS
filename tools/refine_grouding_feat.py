@@ -11,7 +11,8 @@ import torch
 import yaml
 from munch import Munch
 from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200
-from open3dis.dataset.scannet_loader import ScanNetReader, scaling_mapping
+from open3dis.dataset.scannet_loader import scaling_mapping
+from open3dis.dataset import build_dataset
 from open3dis.src.clustering.clustering import process_hierarchical_agglomerative
 from open3dis.src.fusion_util import NMS_cuda
 from open3dis.src.mapper import PointCloudToImageMapper
@@ -83,11 +84,11 @@ def refine_grounding_features(
 
     ### Set up dataloader
     scene_dir = os.path.join(cfg.data.datapath, scene_id)
-    scannet_loader = ScanNetReader(root_path=scene_dir, cfg=cfg)
+    loader = build_dataset(root_path=scene_dir, cfg=cfg)
 
     img_dim = cfg.data.img_dim
     pointcloud_mapper = PointCloudToImageMapper(
-        image_dim=img_dim, intrinsics=scannet_loader.global_intrinsic, cut_bound=cfg.data.cut_num_pixel_boundary
+        image_dim=img_dim, intrinsics=loader.global_intrinsic, cut_bound=cfg.data.cut_num_pixel_boundary
     )
 
     data_2d = torch.load(cluster_dict_path)
@@ -143,7 +144,7 @@ def refine_grounding_features(
     ########### ########### ########### ###########
     n_instance = instance.shape[0]
 
-    points = scannet_loader.read_pointcloud()
+    points = loader.read_pointcloud()
     points = torch.from_numpy(points).cuda()
     n_points = points.shape[0]
 
@@ -166,13 +167,13 @@ def refine_grounding_features(
     mappings = []
     images = []
 
-    for i in trange(0, len(scannet_loader), interval):
-        frame = scannet_loader[i]
+    for i in trange(0, len(loader), interval):
+        frame = loader[i]
         frame_id = frame["frame_id"]  # str
 
-        pose = scannet_loader.read_pose(frame["pose_path"])
-        depth = scannet_loader.read_depth(frame["depth_path"])
-        rgb_img = scannet_loader.read_image(frame["image_path"])
+        pose = loader.read_pose(frame["pose_path"])
+        depth = loader.read_depth(frame["depth_path"])
+        rgb_img = loader.read_image(frame["image_path"])
         rgb_img_dim = rgb_img.shape[:2]
 
         if "scannetpp" in cfg.data.dataset_name:  # Map on image resolution in Scannetpp only
@@ -180,13 +181,20 @@ def refine_grounding_features(
             mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
             mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["translated_intrinsics"])
 
-        if "scannet200" in cfg.data.dataset_name:
+        elif "scannet200" in cfg.data.dataset_name:
             mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
             mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
             new_mapping = scaling_mapping(
                 torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
             )
             mapping[:, 1:4] = torch.cat((new_mapping, mapping[:, 3].unsqueeze(1)), dim=1)
+
+        elif "replica" in cfg.data.dataset_name:
+            mapping = torch.ones([n_points, 4], dtype=int, device='cuda')
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+
+        else:
+            raise ValueError(f"Unknown dataset: {cfg.data.dataset_name}")
 
         if mapping[:, 3].sum() < 100:  # no points corresponds to this image, skip sure
             continue
@@ -296,22 +304,22 @@ if __name__ == "__main__":
     with torch.cuda.amp.autocast(enabled=cfg.fp16):
         for scene_id in tqdm(scene_ids):
             # Tracker
-            done = False
-            path = scene_id + ".pth"
-            with open("tracker_refine.txt", "r") as file:
-                lines = file.readlines()
-                lines = [line.strip() for line in lines]
-                for line in lines:
-                    if path in line:
-                        done = True
-                        break
-            if done == True:
-                print("existed " + path)
-                continue
-            # Write and append each line
-            with open("tracker_refine.txt", "a") as file:
-                file.write(path + "\n")
-            print("Process", scene_id)
+            # done = False
+            # path = scene_id + ".pth"
+            # with open("tracker_refine.txt", "r") as file:
+            #     lines = file.readlines()
+            #     lines = [line.strip() for line in lines]
+            #     for line in lines:
+            #         if path in line:
+            #             done = True
+            #             break
+            # if done == True:
+            #     print("existed " + path)
+            #     continue
+            # # Write and append each line
+            # with open("tracker_refine.txt", "a") as file:
+            #     file.write(path + "\n")
+            # print("Process", scene_id)
 
             refined_pc_features, inst_features = refine_grounding_features(
                 scene_id,

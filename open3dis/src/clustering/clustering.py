@@ -15,6 +15,7 @@ import torch.nn.functional as F
 import torch_scatter
 from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200
 from open3dis.dataset.scannet_loader import ScanNetReader, scaling_mapping
+from open3dis.dataset import build_dataset
 from open3dis.src.clustering.clustering_utils import (
     compute_projected_pts,
     compute_projected_pts_torch,
@@ -64,13 +65,18 @@ def hierarchical_agglomerative_clustering(
     visi=0.7,
     reca = 1.0,
     simi=0.5,
+    iterative=True,
 ):
     global num_point, dc_feature_matrix, dc_feature_spp
     if left == right:
         device = spp.device
         # Graph initialization
         index = left
-        masks = pcd_list[index]["masks"]
+
+        if pcd_list[index]["masks"] is None:
+            return [], []
+        
+        masks = pcd_list[index]["masks"].cuda()
         mapping = pcd_list[index]["mapping"].cuda()
 
         total_spp_points = torch_scatter.scatter((mapping[:, 3] == 1).float(), spp, dim=0, reduce="sum")
@@ -78,9 +84,6 @@ def hierarchical_agglomerative_clustering(
         weights = []
         ### Per mask processing
         mask3d = []
-
-        if masks == None:
-            return [], []
 
         for m, mask in enumerate(masks):
             spp_weights = torch.zeros((n_spp), dtype=torch.float32, device=device)
@@ -95,7 +98,7 @@ def hierarchical_agglomerative_clustering(
             num_related_points = torch_scatter.scatter(sieve_mask.float(), spp, dim=0, reduce="sum")
 
             spp_weights = torch.where(
-                total_spp_points == 0, torch.tensor(0.0).cuda(), num_related_points / total_spp_points
+                total_spp_points==0, 0, num_related_points / total_spp_points
             )
             target_spp = torch.nonzero(spp_weights >= 0.5).view(-1)
 
@@ -107,7 +110,7 @@ def hierarchical_agglomerative_clustering(
                 target_weight = torch.zeros_like(spp_weights)
                 target_weight[target_spp] = spp_weights[target_spp]
 
-                group_tmp = torch.zeros((n_spp), dtype=torch.int, device=device)
+                group_tmp = torch.zeros((n_spp), dtype=torch.int8, device=device)
                 group_tmp[target_spp] = 1
 
                 mask3d.append(group_tmp)
@@ -126,7 +129,7 @@ def hierarchical_agglomerative_clustering(
                     target_weight = torch.zeros_like(spp_weights)
                     target_weight[target_spp] = spp_weights[target_spp]
 
-                    group_tmp = torch.zeros((n_spp), dtype=torch.int, device=device)
+                    group_tmp = torch.zeros((n_spp), dtype=torch.int8, device=device)
                     group_tmp[target_spp] = 1
 
                     mask3d.append(group_tmp)
@@ -140,10 +143,10 @@ def hierarchical_agglomerative_clustering(
 
     mid = int((left + right) / 2)
     graph_1_onehot, weight_1 = hierarchical_agglomerative_clustering(
-        pcd_list, left, mid, spp, n_spp, n_points, sieve, detic=detic, visi = visi, reca = reca, simi = simi
+        pcd_list, left, mid, spp, n_spp, n_points, sieve, detic=detic, visi = visi, reca = reca, simi = simi, iterative=iterative
     )
     graph_2_onehot, weight_2 = hierarchical_agglomerative_clustering(
-        pcd_list, mid + 1, right, spp, n_spp, n_points, sieve, detic=detic, visi = visi, reca = reca, simi = simi
+        pcd_list, mid + 1, right, spp, n_spp, n_points, sieve, detic=detic, visi = visi, reca = reca, simi = simi, iterative=iterative
     )
 
     if len(graph_1_onehot) == 0 and len(graph_2_onehot) == 0:
@@ -155,42 +158,94 @@ def hierarchical_agglomerative_clustering(
     if len(graph_2_onehot) == 0:
         return graph_1_onehot, weight_1
 
-    new_graph = torch.cat([graph_1_onehot, graph_2_onehot], dim=0)
-    new_weight = torch.cat([weight_1, weight_2], dim=0)
+    if iterative:
+        new_graph = torch.cat([graph_1_onehot, graph_2_onehot], dim=0)
+        new_weight = torch.cat([weight_1, weight_2], dim=0)
 
-    graph_feat = new_graph.bool().float() @ dc_feature_spp  # n, f
+        graph_feat = new_graph.bool().float() @ dc_feature_spp  # n, f
 
-    graph_feat_matrix = pairwise_cosine_similarity(graph_feat, graph_feat)
+        graph_feat_matrix = pairwise_cosine_similarity(graph_feat, graph_feat)
 
-    iou_matrix, _, recall_matrix = compute_relation_matrix_self(new_graph, spp, sieve)
-    
-    #####
-    adjacency_matrix = (iou_matrix >= visi)
-    if reca < 0.98:
-        adjacency_matrix |= (recall_matrix >= reca)    
-    if simi > 0.1: # scannetpp using 3D features from 3D backbone pretrained scannet200 yeilds not good results
-        adjacency_matrix &= (graph_feat_matrix >= simi)
-    adjacency_matrix = adjacency_matrix | adjacency_matrix.T
-    #####
+        # iou_matrix, _, recall_matrix = compute_relation_matrix_self(new_graph, spp, sieve)
+        iou_matrix, _, recall_matrix = compute_relation_matrix_self(new_graph)
+        
+        #####
+        adjacency_matrix = (iou_matrix >= visi)
+        if reca < 0.98:
+            adjacency_matrix |= (recall_matrix >= reca)    
+        if simi > 0.1: # scannetpp using 3D features from 3D backbone pretrained scannet200 yeilds not good results
+            adjacency_matrix &= (graph_feat_matrix >= simi)
+        adjacency_matrix = adjacency_matrix | adjacency_matrix.T
+        #####
 
-    # if adjacency_matrix
-    if adjacency_matrix.sum() == new_graph.shape[0]:
+        # if adjacency_matrix
+        if adjacency_matrix.sum() == new_graph.shape[0]:
+            return new_graph, new_weight
+
+        # merge instances based on the adjacency matrix
+        connected_components = find_connected_components(adjacency_matrix)
+        M = len(connected_components)
+
+        merged_instance = torch.zeros((M, graph_2_onehot.shape[1]), dtype=torch.int8, device=graph_2_onehot.device)
+        merged_weight = torch.zeros((M, graph_2_onehot.shape[1]), dtype=torch.float, device=graph_2_onehot.device)
+
+        for i, cluster in enumerate(connected_components):
+            merged_instance[i] = new_graph[cluster].sum(0)
+            merged_weight[i] = new_weight[cluster].mean(0)
+
+        new_graph = merged_instance
+        new_weight = merged_weight
+
         return new_graph, new_weight
+    
+    new_graph, new_weight = [], [] 
 
-    # merge instances based on the adjacency matrix
-    connected_components = find_connected_components(adjacency_matrix)
-    M = len(connected_components)
+    vis1 = torch.zeros((graph_1_onehot.shape[0]), device=graph_2_onehot.device)
+    vis2 = torch.zeros((graph_2_onehot.shape[0]), device=graph_2_onehot.device)
 
-    merged_instance = torch.zeros((M, graph_2_onehot.shape[1]), dtype=torch.int, device=graph_2_onehot.device)
-    merged_weight = torch.zeros((M, graph_2_onehot.shape[1]), dtype=torch.float, device=graph_2_onehot.device)
+    intersections = graph_1_onehot[:, spp].float() @ graph_2_onehot[:, spp].float().T
+    # ious = intersections / ()
+    # intersections = ((torch.logical_and(graph_1_onehot.bool()[:, None, :], graph_2_onehot.bool()[None, :, :])) * num_point[None, None]).sum(dim=-1)
+    ious = intersections / ((graph_1_onehot.long() * num_point).sum(1)[:, None] + (graph_2_onehot.long() * num_point).sum(1)[None, :] - intersections)
+    
+    # similar_matrix = F.cosine_similarity(graph_1_feat[:, None, :], graph_2_feat[None, :, :], dim=2)
+    graph_1_feat = torch.einsum('pn,nc->pc', graph_1_onehot.float(), dc_feature_spp) #/ torch.sum(graph_1_onehot, dim=1, keepdim=True)
+    graph_2_feat = torch.einsum('pn,nc->pc', graph_2_onehot.float(), dc_feature_spp) #/ torch.sum(graph_2_onehot, dim=1, keepdim=True)
+    similar_matrix = pairwise_cosine_similarity(graph_1_feat, graph_2_feat)
+    
+    row_inds = torch.arange((ious.shape[0]), dtype=torch.long, device=graph_1_onehot.device)
+    max_ious, col_inds = torch.max(ious, dim=-1)
+    valid_mask = (max_ious > visi) & (similar_matrix[row_inds, col_inds] > simi)
+    
+    row_inds_ = row_inds[valid_mask]
+    col_inds_ = col_inds[valid_mask]
+    vis2[col_inds_] = 1
+    vis1[row_inds_] = 1
 
-    for i, cluster in enumerate(connected_components):
-        # merged_instance[i] = new_graph[cluster].sum(0)
-        merged_instance[i] = (new_graph[cluster].sum(0)!=0).to(torch.int32)
-        merged_weight[i] = new_weight[cluster].mean(0)
+    union_masks = (graph_1_onehot[row_inds_] + graph_2_onehot[col_inds_]).int()
+    intersection_masks = (graph_1_onehot[row_inds_] * graph_2_onehot[col_inds_]).bool()
 
-    new_graph = merged_instance
-    new_weight = merged_weight
+    union_weight = 0.5 * (weight_1[row_inds_] + weight_2[col_inds_]) * intersection_masks \
+                 + weight_1[row_inds_] * graph_1_onehot[row_inds_] \
+                 + weight_2[col_inds_] * graph_2_onehot[col_inds_] 
+    
+    temp = (intersection_masks.float() + graph_1_onehot[row_inds_].float() + graph_2_onehot[col_inds_].float())
+    union_weight = torch.where(temp == 0, 0, union_weight / temp)
+
+    new_graph.append(union_masks.bool())
+    new_weight.append(union_weight)
+
+    nomatch_inds_group1 = torch.nonzero(vis1 == 0).view(-1)
+    new_graph.append(graph_1_onehot[nomatch_inds_group1])
+    new_weight.append(weight_1[nomatch_inds_group1])
+
+    nomatch_inds_group2 = torch.nonzero(vis2 == 0).view(-1)
+    new_graph.append(graph_2_onehot[nomatch_inds_group2])
+    new_weight.append(weight_2[nomatch_inds_group2])
+
+
+    new_graph = torch.cat(new_graph, dim=0)
+    new_weight = torch.cat(new_weight, dim=0)
 
     return new_graph, new_weight
 
@@ -340,6 +395,7 @@ def process_hierarchical_agglomerative(scene_id, cfg):
     visi = cfg.cluster.visi
     simi = cfg.cluster.simi
     reca = cfg.cluster.recall
+    iterative = cfg.cluster.iterative if hasattr(cfg.cluster, 'iterative') else True
 
     exp_path = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name)
 
@@ -354,14 +410,14 @@ def process_hierarchical_agglomerative(scene_id, cfg):
     dc_feature_path = os.path.join(cfg.data.dc_features_path, scene_id + ".pth")
 
     scene_dir = os.path.join(cfg.data.datapath, scene_id)
-    scannet_loader = ScanNetReader(root_path=scene_dir, cfg=cfg)
+    loader = build_dataset(root_path=scene_dir, cfg=cfg)
 
     img_dim = cfg.data.img_dim
     pointcloud_mapper = PointCloudToImageMapper(
-        image_dim=img_dim, intrinsics=scannet_loader.global_intrinsic, cut_bound=cfg.data.cut_num_pixel_boundary
+        image_dim=img_dim, intrinsics=loader.global_intrinsic, cut_bound=cfg.data.cut_num_pixel_boundary
     )
 
-    points = scannet_loader.read_pointcloud()
+    points = loader.read_pointcloud()
     points = torch.from_numpy(points).cuda()
     n_points = points.shape[0]
 
@@ -369,7 +425,10 @@ def process_hierarchical_agglomerative(scene_id, cfg):
     n_spp = torch.unique(spp).shape[0]
     unique_spp, spp, num_point = torch.unique(spp, return_inverse=True, return_counts=True)
 
-    dc_feature = torch.load(dc_feature_path).cuda().float()
+    dc_feature = torch.load(dc_feature_path)
+    if isinstance(dc_feature, np.ndarray):
+        dc_feature = torch.from_numpy(dc_feature)
+    dc_feature = dc_feature.cuda().float()
 
     dc_feature_spp = torch_scatter.scatter(dc_feature, spp, dim=0, reduce="sum")
     dc_feature_spp = F.normalize(dc_feature_spp, dim=1, p=2)
@@ -382,27 +441,44 @@ def process_hierarchical_agglomerative(scene_id, cfg):
         sieve.append((spp == i).sum().item()) 
     sieve = torch.tensor(sieve)
 
+    # FIXME 
+
+    # mask2d_path = f'/home/tdngo/Workspace/3dis_ws/Open3DInstanceSegmentation/Dataset/replica/version_final/maskGdino0404conf/{scene_id}.pth'
     groundedsam_data_dict = torch.load(mask2d_path)
     pcd_list = []
 
-    for i in trange(0, len(scannet_loader), cfg.data.img_interval):
-        frame = scannet_loader[i]
+    # groundedsam_data_ptr = 0
+    for i in trange(0, len(loader), cfg.data.img_interval):
+        frame = loader[i]
         frame_id = frame["frame_id"]
+        
+        # FIXME
         if frame_id not in groundedsam_data_dict.keys():
-            if 'frame_'+str(int(frame_id) * 10) in groundedsam_data_dict.keys(): # conflict resolve generating scannet++ issues
-                frame_id = 'frame_'+str(int(frame_id) * 10)
+            if cfg.data.dataset_name == 'scannetpp':
+                if 'frame_'+str(int(frame_id) * 10) in groundedsam_data_dict.keys(): # conflict resolve generating scannet++ issues
+                    frame_id = 'frame_'+str(int(frame_id) * 10)
+                else:
+                    print('skip: ', frame_id)
+                    continue
             else:
                 print('skip: ', frame_id)
                 continue
-        groundedsam_data = groundedsam_data_dict[frame_id]
 
-        pose = scannet_loader.read_pose(frame["pose_path"])
-        depth = scannet_loader.read_depth(frame["depth_path"])
-        rgb_img = scannet_loader.read_image(frame["image_path"])
+        # if frame_id != groundedsam_data_dict['frame_id'][groundedsam_data_ptr]: continue
+
+        # encoded_masks = groundedsam_data_dict['masks'][groundedsam_data_ptr]
+        # groundedsam_data_ptr += 1
+        # image_features = groundedsam_data['total_feature'][groundedsam_data_ptr]
+
+        groundedsam_data = groundedsam_data_dict[frame_id]
+        encoded_masks = groundedsam_data["masks"]
+
+        pose = loader.read_pose(frame["pose_path"])
+        depth = loader.read_depth(frame["depth_path"])
+        rgb_img = loader.read_image(frame["image_path"])
 
         rgb_img_dim = rgb_img.shape[:2]
         
-        encoded_masks = groundedsam_data["masks"]
 
         masks = None
         if encoded_masks is not None:
@@ -431,61 +507,84 @@ def process_hierarchical_agglomerative(scene_id, cfg):
                 pad_inches=0.0,
             )
 
-
+        # breakpoint()
         if "scannetpp" in cfg.data.dataset_name:  # Map on image resolution in Scannetpp only
             depth = cv2.resize(depth, (img_dim[0], img_dim[1]))
-            mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
+            mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
             mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["translated_intrinsics"])
 
-        if "scannet200" in cfg.data.dataset_name:
+        elif "scannet200" in cfg.data.dataset_name:
             mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
             mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth) # global intrinsic
             new_mapping = scaling_mapping(
                 torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
             )
             mapping[:, 1:4] = torch.cat((new_mapping, mapping[:, 3].unsqueeze(1)), dim=1)
+        
+        elif "replica" in cfg.data.dataset_name:
+            mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+            # new_mapping = pointcloud_mapper(torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1])
+            # mapping[:, 1:4] = torch.cat((new_mapping,mapping[:,3].unsqueeze(1)),dim=1)
+
+        else:
+            raise ValueError(f"Unknown dataset: {cfg.data.dataset_name}")
 
         visibility[mapping[:, 3] == 1] += 1
 
+
+        # breakpoint()
+        # breakpoint()
         dic = {"mapping": mapping.cpu(), "masks": masks}
         pcd_list.append(dic)
     
     torch.cuda.empty_cache()
     num_instance = 0
     
-    groups, weights = hierarchical_agglomerative_clustering(pcd_list, 0, len(pcd_list) - 1, spp, n_spp, n_points, sieve, detic=False, visi=visi, reca = reca, simi=simi)
+    # breakpoint()
+    groups, weights = hierarchical_agglomerative_clustering(pcd_list, 0, len(pcd_list) - 1, spp, n_spp, n_points, sieve, detic=False, visi=visi, reca = reca, simi=simi, iterative=iterative)
 
     if len(groups) == 0:
         return None, None
 
     confidence = (groups.bool() * weights).sum(dim=1) / groups.sum(dim=1)
-    groups = groups.cpu().to(torch.int64)
+    groups = groups.to(torch.int64).cpu()
+
+    spp = spp.cpu()
     proposals_pred = groups[:, spp]  # .bool()
     del groups, weights
     torch.cuda.empty_cache()
 
     ## These lines take a lot of memory # achieveing in paper result-> unlock this
-    if cfg.cluster.point_visi > 0.1:
+    if cfg.cluster.point_visi > 0:
         inst_visibility = (proposals_pred.cpu().to(torch.int64) / visibility.clip(min=1e-6)[None, :].cpu().to(torch.float64)).to(torch.float64).cpu()
-        proposals_pred = proposals_pred.cpu()
+        # proposals_pred = proposals_pred.cpu()
         torch.cuda.empty_cache()    
         proposals_pred[inst_visibility < cfg.cluster.point_visi] = 0
     else: # pointvis==0.0 # Scannetpp
         pass
+
+    # inst_visibility = proposals_pred / visibility.cpu().clip(min=1e-6)[None, :]
+    # proposals_pred[inst_visibility < 0.2] = 0
     
     proposals_pred = proposals_pred.bool()
 
-    proposals_pred_final = custom_scatter_mean(
-        proposals_pred,
-        spp[None, :].expand(len(proposals_pred), -1),
-        dim=-1,
-        pool=True,
-        output_type=torch.float64,
-    )
-    proposals_pred = (proposals_pred_final >= 0.5)[:, spp]
+    # breakpoint()
+    if cfg.cluster.point_visi > 0:
+        proposals_pred_final = custom_scatter_mean(
+            proposals_pred,
+            spp[None, :].expand(len(proposals_pred), -1),
+            dim=-1,
+            pool=True,
+            output_type=torch.float64,
+        )
+        proposals_pred = (proposals_pred_final >= 0.5)[:, spp]
 
     mask_valid = proposals_pred.sum(1) > cfg.cluster.valid_points
     proposals_pred = proposals_pred[mask_valid].cpu()
     confidence = confidence[mask_valid].cpu()
+
+
+    # breakpoint()
 
     return proposals_pred, confidence

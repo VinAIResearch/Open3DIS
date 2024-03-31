@@ -3,4 +3,11 @@ Processed Scenes .
 09c1414f1b.pth
 0d2ee665be.pth
 scene0011_00.pth
-scene0011_01.pth
+scene0011_01.pthoffice0.pth
+office1.pth
+office2.pth
+office3.pth
+office4.pth
+room0.pth
+room1.pth
+room2.pth

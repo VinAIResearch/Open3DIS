@@ -11,6 +11,8 @@ import yaml
 from munch import Munch
 from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200 # Scannet200
 from open3dis.dataset.scannetpp import SEMANTIC_CAT_SCANNET_PP # ScannetPP
+from open3dis.dataset.replica import INSTANCE_CAT_REPLICA
+
 from open3dis.evaluation.scannetv2_inst_eval import ScanNetEval
 from open3dis.src.clustering.clustering import process_hierarchical_agglomerative
 from torch.nn import functional as F
@@ -74,11 +76,20 @@ def get_final_instances(
     """
     exp_path = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name)
 
+    pc_features_path = os.path.join(exp_path, cfg.exp.grounded_feat_output, f"{scene_id}.pth")
+    pc_refined_features_path = os.path.join(exp_path, cfg.exp.refined_grounded_feat_output, f"{scene_id}.pth")
+    
     # Choose which stage to use the feature ?
-    if cfg.proposals.refined == True:
-        pc_features_path = os.path.join(exp_path, cfg.exp.refined_grounded_feat_output, f"{scene_id}.pth")
+    if cfg.proposals.refined and os.path.exists(pc_refined_features_path):
+        pc_features = torch.load(pc_refined_features_path)["feat"].cuda().half()
     else:
-        pc_features_path = os.path.join(exp_path, cfg.exp.grounded_feat_output, f"{scene_id}.pth")
+        pc_features = torch.load(pc_features_path)["feat"].cuda().half()
+
+    # dir_feat = '/home/tdngo/Workspace/3dis_ws/Open3DInstanceSegmentation/Dataset/replica/version_final/computed_feature'
+    # pc_features = torch.load(os.path.join(dir_feat, f"{scene_id}_grounded_ov.pt"))["feat"].cuda().half()
+
+    # pc_features = torch.load(pc_features_path)["feat"].cuda().half()
+    pc_features = F.normalize(pc_features, dim=1, p=2)
 
     # 2D lifting 3D mask path
     cluster_dict_path = os.path.join(exp_path, cfg.exp.clustering_3d_output, f"{scene_id}.pth")
@@ -111,31 +122,31 @@ def get_final_instances(
         else:
             instance_3d = torch.stack([torch.tensor(in3d) for in3d in instance_3d_encoded], dim=0).cuda()
 
-        intersection = torch.einsum("nc,mc->nm", instance_2d.float(), instance_3d.float())
-        # print(intersection.shape, instance.shape, )
-        ious = intersection / (instance_2d.sum(1)[:, None] + instance_3d.sum(1)[None, :] - intersection)
-        ious_max = torch.max(ious, dim=1)[0]
+        # intersection = torch.einsum("nc,mc->nm", instance_2d.float(), instance_3d.float())
+        # # print(intersection.shape, instance.shape, )
+        # ious = intersection / (instance_2d.sum(1)[:, None] + instance_3d.sum(1)[None, :] - intersection)
+        # ious_max = torch.max(ious, dim=1)[0]
 
-        valid_mask = torch.ones(instance_2d.shape[0], dtype=torch.bool, device=instance_2d.device)
-        valid_mask[ious_max >= cfg.final_instance.iou_overlap] = 0
+        # valid_mask = torch.ones(instance_2d.shape[0], dtype=torch.bool, device=instance_2d.device)
+        # valid_mask[ious_max >= cfg.final_instance.iou_overlap] = 0
 
-        instance_2d = instance_2d[valid_mask]
-        confidence_2d = confidence_2d[valid_mask]
+        # instance_2d = instance_2d[valid_mask]
+        # confidence_2d = confidence_2d[valid_mask]
 
-        instance = torch.cat([instance_2d, instance_3d], dim=0)
-        confidence = torch.cat([confidence_2d, confidence_3d], dim=0)
-    else:
-        instance = instance_2d
-        confidence = confidence_2d
+        # instance = torch.cat([instance_2d, instance_3d], dim=0)
+        # confidence = torch.cat([confidence_2d, confidence_3d], dim=0)
+    # else:
+    #     instance = instance_2d
+    #     confidence = confidence_2d
 
     if use_2d_proposals and use_3d_proposals:
         instance = torch.cat([instance_2d, instance_3d], dim=0)
         confidence = torch.cat([confidence_2d, confidence_3d], dim=0)
     elif use_2d_proposals and not use_3d_proposals:
-        instance = torch.cat([instance_2d], dim=0)
+        instance = instance_2d
         confidence = torch.cat([confidence_2d], dim=0)
     else:
-        instance = torch.cat([instance_3d], dim=0)
+        instance = instance_3d
         confidence = torch.cat([confidence_3d], dim=0)
     ########### ########### ########### ###########
 
@@ -144,23 +155,26 @@ def get_final_instances(
     if only_instance == True:  # Return class-agnostic 3D instance
         return instance, None, None
 
-    pc_features = torch.load(pc_features_path)["feat"].cuda().half()
-    pc_features = F.normalize(pc_features, dim=1, p=2)
+    
     
     ### Offloading CPU for scannetpp @@
     # NOTE Pointwise semantic scores
-    predicted_class = torch.zeros((pc_features.shape[0], text_features.shape[0]), dtype = torch.float32)
-    bs = 100000
-    for batch in range(0, pc_features.shape[0], bs):
-        start = batch
-        end = min(start + bs, pc_features.shape[0])
-        predicted_class[start:end] = (cfg.final_instance.scale_semantic_score * pc_features[start:end].cpu() @ text_features.T.cpu().to(torch.float32)).softmax(dim=-1).cpu()
+    predicted_class = (cfg.final_instance.scale_semantic_score * pc_features.half() @ text_features.cuda().T).softmax(dim=-1)
+
+    # predicted_class = torch.zeros((pc_features.shape[0], text_features.shape[0]), dtype = torch.float32)
+    # bs = 100000
+    # for batch in range(0, pc_features.shape[0], bs):
+    #     start = batch
+    #     end = min(start + bs, pc_features.shape[0])
+    #     predicted_class[start:end] = (cfg.final_instance.scale_semantic_score * pc_features[start:end].cpu() @ text_features.T.cpu().to(torch.float32)).softmax(dim=-1).cpu()
 
     # NOTE Mask-wise semantic scores
-    inst_class_scores = torch.einsum("kn,nc->kc", instance.float().cpu(), predicted_class).cuda()  # K x classes
+    inst_class_scores = torch.einsum("kn,nc->kc", instance.float(), predicted_class.float()).cuda()  # K x classes
     inst_class_scores = inst_class_scores / instance.float().cuda().sum(dim=1)[:, None]  # K x classes
 
-    # NOTE Top-K instances
+    # # NOTE Top-K instances
+    # new_confidence = torch.where((confidence > 0), confidence, confidence).cuda()
+    # inst_class_scores = torch.sqrt(inst_class_scores*confidence[:, None].cuda())
     inst_class_scores = inst_class_scores.reshape(-1)  # n_cls * n_queries
 
     labels = (
@@ -170,18 +184,25 @@ def get_final_instances(
         .flatten(0, 1)
     )
 
+
+
     cur_topk = 600 if use_3d_proposals else cfg.final_instance.top_k
     _, idx = torch.topk(inst_class_scores, k=min(cur_topk, len(inst_class_scores)), largest=True)
     mask_idx = torch.div(idx, cfg.data.num_classes, rounding_mode="floor")
+
+
+    # breakpoint()
+
     cls_final = labels[idx]
     scores_final = inst_class_scores[idx].cuda()
     masks_final = instance[mask_idx]
 
+    # breakpoint()
     return masks_final, cls_final, scores_final
 
 
-evaluate_openvocab = False
-evaluate_agnostic = False
+# evaluate_openvocab = False
+# evaluate_agnostic = False
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Configuration Open3DIS")
@@ -203,34 +224,24 @@ if __name__ == "__main__":
     # Scannet200 class text features saving
     if cfg.data.dataset_name == 'scannet200':
         class_names = INSTANCE_CAT_SCANNET_200
-        if os.path.exists("../pretrains/text_features/scannet200_text_features.pth"):
-            text_features = torch.load("../pretrains/text_features/scannet200_text_features.pth").cuda().half()
-        else:
-            clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(
-                cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint
-            )
-            clip_adapter = clip_adapter.cuda()
-            with torch.no_grad(), torch.cuda.amp.autocast():
-                text_features = clip_adapter.encode_text(open_clip.tokenize(class_names).cuda())
-                text_features /= text_features.norm(dim=-1, keepdim=True)
-                torch.save(text_features.cpu(), "../pretrains/text_features/scannet200_text_features.pth")
-    if cfg.data.dataset_name == 'scannetpp':
-        class_names = SEMANTIC_CAT_SCANNET_PP
-        if os.path.exists("../pretrains/text_features/scannetpp_text_features.pth"):
-            text_features = torch.load("../pretrains/text_features/scannetpp_text_features.pth").cuda().half()
-        else:
-            try:
-                os.makedirs('../pretrains/text_features')
-            except:
-                pass
-            clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(
-                cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint
-            )
-            clip_adapter = clip_adapter.cuda()
-            with torch.no_grad(), torch.cuda.amp.autocast():
-                text_features = clip_adapter.encode_text(open_clip.tokenize(class_names).cuda())
-                text_features /= text_features.norm(dim=-1, keepdim=True)
-                torch.save(text_features.cpu(), "../pretrains/text_features/scannetpp_text_features.pth")        
+    elif cfg.data.dataset_name == 'scannetpp':
+        class_names = SEMANTIC_CAT_SCANNET_PP    
+    elif cfg.data.dataset_name == 'replica':
+        class_names = INSTANCE_CAT_REPLICA
+
+    # text_features_path = f"../pretrains/text_features/{cfg.data.dataset_name}_text_features.pth"
+    # if os.path.exists(text_features_path):
+    #     text_features = torch.load(text_features_path).cuda().half()
+    # else:
+    clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(
+        cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint
+    )
+    # adapter, _, preprocess = open_clip.create_model_and_transforms('ViT-L-14-336', pretrained='openai')
+    clip_adapter = clip_adapter.cuda()
+    with torch.no_grad(), torch.cuda.amp.autocast():
+        text_features = clip_adapter.encode_text(open_clip.tokenize(class_names).cuda())
+        text_features /= text_features.norm(dim=-1, keepdim=True)
+        # torch.save(text_features.cpu(), text_features_path)
 
     # Prepare directories
     save_dir_cluster = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.clustering_3d_output)
@@ -239,38 +250,51 @@ if __name__ == "__main__":
     os.makedirs(save_dir_final, exist_ok=True)
 
     # Multiprocess logger
-    if os.path.exists("tracker_lifted.txt") == False:
-        with open("tracker_lifted.txt", "w") as file:
-            file.write("Processed Scenes .\n")
+    # if os.path.exists("tracker_lifted.txt") == False:
+    #     with open("tracker_lifted.txt", "w") as file:
+    #         file.write("Processed Scenes .\n")
+
+    # breakpoint()
+    evaluate_openvocab = True
 
     with torch.cuda.amp.autocast(enabled=cfg.fp16):
         if evaluate_openvocab:
             if cfg.data.dataset_name == 'scannet200':
                 scan_eval = ScanNetEval(class_labels=INSTANCE_CAT_SCANNET_200)
-            if cfg.data.dataset_name == 'scannetpp':
-                scan_eval = ScanNetEval(class_labels=SEMANTIC_CAT_SCANNET_PP)                
+            elif cfg.data.dataset_name == 'scannetpp':
+                scan_eval = ScanNetEval(class_labels=SEMANTIC_CAT_SCANNET_PP)   
+            elif cfg.data.dataset_name == 'replica':     
+                scan_eval = ScanNetEval(class_labels=INSTANCE_CAT_REPLICA, dataset_name='replica')
+            else:
+                raise ValueError(f"Unknown dataset: {cfg.data.dataset_name}")
+            
             gtsem = []
             gtinst = []
             res = []
 
         for scene_id in tqdm(scene_ids):
             print("Process", scene_id)
-           # Tracker
-            done = False
-            path = scene_id + ".pth"
-            with open("tracker_lifted.txt", "r") as file:
-                lines = file.readlines()
-                lines = [line.strip() for line in lines]
-                for line in lines:
-                    if path in line:
-                        done = True
-                        break
-            if done == True:
-                print("existed " + path)
-                continue
-            ## Write append each line
-            with open("tracker_lifted.txt", "a") as file:
-                file.write(path + "\n")
+            # Tracker
+            # done = False
+            # path = scene_id + ".pth"
+            # with open("tracker_lifted.txt", "r") as file:
+            #     lines = file.readlines()
+            #     lines = [line.strip() for line in lines]
+            #     for line in lines:
+            #         if path in line:
+            #             done = True
+            #             break
+            # if done == True:
+            #     print("existed " + path)
+            #     continue
+            # ## Write append each line
+            # with open("tracker_lifted.txt", "a") as file:
+            #     file.write(path + "\n")
+
+            # if os.path.exists(os.path.join(save_dir_cluster, f"{scene_id}.pth")): 
+            #     print(f"Skip {scene_id} as it already exists")
+            #     continue
+
             #############################################
             # NOTE hierarchical agglomerative clustering
             if True:
@@ -281,27 +305,28 @@ if __name__ == "__main__":
                     "conf": confidence,
                 }
                 torch.save(cluster_dict, os.path.join(save_dir_cluster, f"{scene_id}.pth"))
+
             cluster_dict = torch.load(os.path.join(save_dir_cluster, f"{scene_id}.pth"))
             #############################################
             # NOTE get final instances
-            if False:
-                masks_final, cls_final, scores_final = get_final_instances(
-                    cfg,
-                    text_features,
-                    cluster_dict=cluster_dict,
-                    use_2d_proposals=cfg.proposals.p2d,
-                    use_3d_proposals=cfg.proposals.p3d,
-                    only_instance=cfg.proposals.agnostic,
-                )
-                final_dict = {
-                    "ins": rle_encode_gpu_batch(masks_final),
-                    "conf": scores_final.cpu(),
-                    "final_class": cls_final.cpu(),
-                }
-                # Final instance
-                torch.save(final_dict, os.path.join(save_dir_final, f"{scene_id}.pth"))
+            # if False:
+            
+            masks_final, cls_final, scores_final = get_final_instances(
+                cfg,
+                text_features,
+                cluster_dict=cluster_dict,
+                use_2d_proposals=cfg.proposals.p2d,
+                use_3d_proposals=cfg.proposals.p3d,
+                only_instance=cfg.proposals.agnostic,
+            )
+            final_dict = {
+                "ins": rle_encode_gpu_batch(masks_final),
+                "conf": scores_final.cpu(),
+                "final_class": cls_final.cpu(),
+            }
+            # NOTE Final instance
+            torch.save(final_dict, os.path.join(save_dir_final, f"{scene_id}.pth"))
             #############################################
-
             # NOTE Evaluation openvocab
             if evaluate_openvocab:
                 gt_path = os.path.join(cfg.data.gt_pth, f"{scene_id}.pth")

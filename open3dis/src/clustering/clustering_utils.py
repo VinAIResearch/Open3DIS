@@ -1,30 +1,30 @@
-import argparse
-import copy
-import glob
-import importlib
-import json
-import operator
+# import argparse
+# import copy
+# import glob
+# import importlib
+# import json
+# import operator
 import os
 import pickle
-import sys
+# import sys
 from collections import deque
-from functools import reduce
-from pathlib import Path
-from time import perf_counter
+# from functools import reduce
+# from pathlib import Path
+# from time import perf_counter
 from typing import Dict, Union
 
 import numpy as np
-import numpy.linalg as la
+# import numpy.linalg as la
 import pycocotools.mask
 import torch
-import torch.nn.functional as F
+# import torch.nn.functional as F
 import torch_scatter
 from detectron2.structures import Instances
 from numba import njit
-from scipy.optimize import linear_sum_assignment
-from sklearn.cluster import DBSCAN
-from torchmetrics.functional import pairwise_cosine_similarity
-from tqdm import tqdm
+# from scipy.optimize import linear_sum_assignment
+# from sklearn.cluster import DBSCAN
+# from torchmetrics.functional import pairwise_cosine_similarity
+# from tqdm import tqdm
 
 
 def custom_scatter_mean(input_feats, indices, dim=0, pool=True, output_type=None):
@@ -38,10 +38,11 @@ def custom_scatter_mean(input_feats, indices, dim=0, pool=True, output_type=None
         out_feats = []
         while start < indices.shape[0]:
             end = min(start + batch_size, indices.shape[0])
-            out_feats.append(torch_scatter.scatter_mean(input_feats.to(torch.float32)[start:end].cuda(), indices[start:end], dim=dim).cpu())
+            out_feats.append(torch_scatter.scatter_mean(input_feats.to(torch.float32)[start:end].cuda(), indices[start:end].cuda(), dim=dim).cpu())
             torch.cuda.empty_cache()
             start += batch_size
         out_feats = torch.cat(out_feats)
+
     if output_type is None:
         out_feats = out_feats.to(original_type)
     else:
@@ -49,6 +50,20 @@ def custom_scatter_mean(input_feats, indices, dim=0, pool=True, output_type=None
 
     return out_feats
 
+# def custom_scatter_mean(input_feats, indices, dim=0, pool=True, output_type=None):
+#     if not pool:
+#         return input_feats
+
+#     original_type = input_feats.dtype
+#     with torch.cuda.amp.autocast(enabled=False):
+#         out_feats = torch_scatter.scatter_mean(input_feats.to(torch.float32), indices, dim=dim)
+
+#     if output_type is None:
+#         out_feats = out_feats.to(original_type)
+#     else:
+#         out_feats = out_feats.to(output_type)
+
+#     return out_feats
 
 
 def resolve_overlapping_3d_masks(pred_masks, pred_scores, score_thresh=0.5, device="cuda:0"):
@@ -186,41 +201,53 @@ def compute_visible_masked_pts(scene_pts, projected_pts, visibility_mask, pred_m
     return masked_pts
 
 
-def compute_relation_matrix_self(instance_pt_mask, spp, sieve):
-    if not torch.is_tensor(instance_pt_mask):
-        instance_pt_mask = torch.from_numpy(instance_pt_mask)
-    torch.cuda.empty_cache()
+    # def compute_relation_matrix_self(instance_pt_mask, spp, sieve):
+    #     if not torch.is_tensor(instance_pt_mask):
+    #         instance_pt_mask = torch.from_numpy(instance_pt_mask)
+    #     torch.cuda.empty_cache()
 
-    #### Small tweak make it work on scannetpp ~ 40GB A100
-    # n = instance_pt_count.shape[1]
-    # numbers = list(range(n))
-    # chosen_numbers = random.sample(numbers, n // max(1,int(((n *instance_pt_count.shape[0])/1e8))))
-    # instance_pt_mask = instance_pt_count[:,chosen_numbers].to(torch.bool).to(torch.float16)
+    #     #### Small tweak make it work on scannetpp ~ 40GB A100
+    #     # n = instance_pt_count.shape[1]
+    #     # numbers = list(range(n))
+    #     # chosen_numbers = random.sample(numbers, n // max(1,int(((n *instance_pt_count.shape[0])/1e8))))
+    #     # instance_pt_mask = instance_pt_count[:,chosen_numbers].to(torch.bool).to(torch.float16)
 
-    # torch.cuda.empty_cache()
-    # intersection = []
-    # for i in range(instance_pt_mask.shape[0]):
-    #     it = []
-    #     for j in range(instance_pt_mask.shape[0]):
-    #         it.append(instance_pt_mask[i].cuda() @ instance_pt_mask.T[:, j].cuda())
-    #         torch.cuda.empty_cache()
-    #     intersection.append(torch.tensor(it))  # save mem
-    # intersection = torch.stack(intersection).cuda()
-    # (1k,1M) ~ 1e9
-    instance_pt_mask_tmp = (instance_pt_mask.to(torch.float64) * sieve.expand(instance_pt_mask.shape[0], -1).to(torch.float64).cuda()).to(torch.float64)
-    intersection =  (instance_pt_mask.to(torch.float64) @ instance_pt_mask_tmp.T.to(torch.float64)).to(torch.float64)
-    inliers = instance_pt_mask_tmp.sum(1, keepdims=True).to(torch.float64).cuda()
-    union = (inliers + inliers.T - intersection).to(torch.float64)
+    #     # torch.cuda.empty_cache()
+    #     # intersection = []
+    #     # for i in range(instance_pt_mask.shape[0]):
+    #     #     it = []
+    #     #     for j in range(instance_pt_mask.shape[0]):
+    #     #         it.append(instance_pt_mask[i].cuda() @ instance_pt_mask.T[:, j].cuda())
+    #     #         torch.cuda.empty_cache()
+    #     #     intersection.append(torch.tensor(it))  # save mem
+    #     # intersection = torch.stack(intersection).cuda()
+    #     # (1k,1M) ~ 1e9
+    #     instance_pt_mask_tmp = (instance_pt_mask.to(torch.float64) * sieve.expand(instance_pt_mask.shape[0], -1).to(torch.float64).cuda()).to(torch.float64)
+    #     intersection =  (instance_pt_mask.to(torch.float64) @ instance_pt_mask_tmp.T.to(torch.float64)).to(torch.float64)
+    #     inliers = instance_pt_mask_tmp.sum(1, keepdims=True).to(torch.float64).cuda()
+    #     union = (inliers + inliers.T - intersection).to(torch.float64)
+    #     iou_matrix = intersection / (union + 1e-6)
+
+    #     if (iou_matrix < 0.0).sum() > 0:
+    #         print('wrong assert')
+    #         breakpoint() # wrong assert
+
+    #     precision_matrix = intersection / (inliers.T + 1e-6)
+    #     recall_matrix = intersection / (inliers + 1e-6)
+    #     torch.cuda.empty_cache()
+    #     return iou_matrix.to(torch.float64), precision_matrix, recall_matrix.to(torch.float64)
+
+def compute_relation_matrix_self(instance_pt_count):
+    if not torch.is_tensor(instance_pt_count):
+        instance_pt_count = torch.from_numpy(instance_pt_count)
+    instance_pt_mask = instance_pt_count.to(torch.bool).to(torch.float32)
+    intersection = instance_pt_mask @ instance_pt_mask.T  # (M, num_instances)
+    inliers = instance_pt_mask.sum(1, keepdims=True)
+    union = inliers + inliers.T - intersection
     iou_matrix = intersection / (union + 1e-6)
-
-    if (iou_matrix < 0.0).sum() > 0:
-        print('wrong assert')
-        breakpoint() # wrong assert
-
     precision_matrix = intersection / (inliers.T + 1e-6)
     recall_matrix = intersection / (inliers + 1e-6)
-    torch.cuda.empty_cache()
-    return iou_matrix.to(torch.float64), precision_matrix, recall_matrix.to(torch.float64)
+    return iou_matrix, precision_matrix, recall_matrix
 
 
 def find_connected_components(adj_matrix):
