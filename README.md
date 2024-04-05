@@ -59,7 +59,7 @@ Details of the model architecture and experimental results can be found in [our 
 ## Features :mega:
 * State-of-the-art performance of Open-Vocabulary Instance Segmentation on ScanNet200, S3DIS, and Replica.
 * Support Open-Vocabulary queries: affordances, materials, color, shape, etc.
-* Reproducibility code for both ScanNet200, S3DIS, and Replica, Scannet++ datasets.
+* Reproducibility code for both ScanNet200, and Replica, Scannet++ datasets.
 * Demo application for scene visualization
 
 
@@ -79,12 +79,10 @@ Please refer to [running the code guide](docs/RUN.md)
 ## TODO
 Status | Name | Date
 :---:| --- | ---
-✅| Open3DIS [project page](https://open3dis.github.io/) launched | 2024-12-17
+✅| Open3DIS [project page](https://open3dis.github.io/) launched | 2023-12-17
 ✅| Open3DIS accepted at [CVPR 2024](https://cvpr.thecvf.com/) | 2024-02-27
 ✅| Release the Open3DIS repository | 2024-02-28
 ✅| Release the source code | 2024-03-06
-✅| Support Scannet200 | 2024-03-06
-✅| Support Scannet++  | 2024-03-23
 ⬜️| Publicize Open3DIS  | 
 Misc
 ✅| Support Grounded SAM | 2024-03-06
