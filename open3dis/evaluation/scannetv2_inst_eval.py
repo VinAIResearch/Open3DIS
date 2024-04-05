@@ -267,27 +267,13 @@ class ScanNetEval(object):
         elif self.dataset_name == "stpls3d":
             gts_sem = gts_sem - 1 + 1
         elif self.dataset_name == 'scannetpp':
-            pass
+            gts_sem = gts_sem - 105 + 1
         else: # scanetpp (account for 100+ semantic classes ~)
             gts_sem = gts_sem + 1
 
-        if self.dataset_name != 'scannetpp':
-            gts_sem[gts_sem < 0] = 0
-
+        gts_sem[gts_sem < 0] = 0
         gts_ins = gts_ins + 1
-
-        if self.dataset_name == 'scannetpp': # class-agnostic
-            gts_sem -= 1
-            sem_ignore = np.unique(gts_sem[np.where(gts_ins==-99)])
-            for ignore_class in sem_ignore:
-                tmp = (gts_sem == ignore_class)
-                gts_ins[tmp] = -1
-                gts_sem[tmp] = 0
-            gts_sem[gts_sem <= 0] = 0
-            ignore_inds = gts_ins <= 0
-            gts_ins[gts_ins <= 0] = 0
-        else:
-            ignore_inds = gts_ins < 0
+        ignore_inds = gts_ins < 0
 
         # scannet encoding rule
         gts = gts_sem * self.encode_value + gts_ins

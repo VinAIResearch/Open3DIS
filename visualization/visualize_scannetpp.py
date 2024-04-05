@@ -175,25 +175,25 @@ if __name__ == "__main__":
     ##### The format follows the dataset tree
     ## 1
     check_superpointviz = False
-    spp_path = '../Dataset/Scannetpp/Scannetpp_3D/val/superpoints/' + scene_id + '.pth'
+    spp_path = './data/Scannetpp/Scannetpp_3D/val/superpoints/' + scene_id + '.pth'
     ## 2
     check_gtviz = False
-    gt_path = '../Dataset/Scannetpp/Scannetpp_3D/val/groundtruth/' + scene_id + '.pth'
+    gt_path = './data/Scannetpp/Scannetpp_3D/val/groundtruth/' + scene_id + '.pth'
     ## 3
     check_3dviz = False
-    mask3d_path = '../Dataset/Scannetpp/Scannetpp_3D/val/isbnet_clsagnostic_scannetpp/' + scene_id + '.pth'
+    mask3d_path = './data/Scannetpp/Scannetpp_3D/val/isbnet_clsagnostic_scannetpp/' + scene_id + '.pth'
     ## 4
     check_2dviz = True
-    mask2d_path = '../exp_scannetpp/version_test/hier_agglo/' + scene_id + '.pth'
+    mask2d_path = '../exp_scannetpp/version_sam/hier_agglo/' + scene_id + '.pth'
     ## 5
     check_finalviz = False
-    agnostic_path = '../exp_scannetpp/version_test/final_result_hier_agglo/' + scene_id + '.pth'
+    agnostic_path = '../exp_scannetpp/version_sam/final_result_hier_agglo/' + scene_id + '.pth'
     
 
     pyviz3d_dir = '../viz' # visualization directory
 
     # Visualize Point Cloud 
-    ply_file = '../Dataset/Scannetpp/Scannetpp_3D/val/original_ply_files'
+    ply_file = './data/Scannetpp/Scannetpp_3D/val/original_ply_files'
     point, color = read_pointcloud(os.path.join(ply_file,scene_id + '.ply'))
     color = color * 127.5
     

@@ -16,12 +16,12 @@ grounded_feature:
 data:
   dataset_name: 'scannetpp'
   split_path: './open3dis/dataset/scannetpp_val.txt'
-  datapath: '../Dataset/Scannetpp/Scannetpp_2D_5interval/val' # RGB-D + pose path
-  gt_pth: '../Dataset/Scannetpp/Scannetpp_3D/val/groundtruth' # gt path
-  original_ply: '../Dataset/Scannetpp/Scannetpp_3D/val/original_ply_files' # raw pcl
-  spp_path: '../Dataset/Scannetpp/Scannetpp_3D/val/superpoints' # spp path
-  cls_agnostic_3d_proposals_path: '../Dataset/Scannetpp/Scannetpp_3D/val/isbnet_clsagnostic_scannetpp' # cls agnostic 3D proposals
-  dc_features_path: '../Dataset/Scannetpp/Scannetpp_3D/val/dc_feat_scannetpp' # spp feature path
+  datapath: './data/Scannetpp/Scannetpp_2D_5interval/val' # RGB-D + pose path
+  gt_pth: './data/Scannetpp/Scannetpp_3D/val/groundtruth' # gt path
+  original_ply: './data/Scannetpp/Scannetpp_3D/val/original_ply_files' # raw pcl
+  spp_path: './data/Scannetpp/Scannetpp_3D/val/superpoints' # spp path
+  cls_agnostic_3d_proposals_path: './data/Scannetpp/Scannetpp_3D/val/isbnet_clsagnostic_scannetpp' # cls agnostic 3D proposals
+  dc_features_path: './data/Scannetpp/Scannetpp_3D/val/dc_feat_scannetpp' # spp feature path
   img_dim: [1920, 1440] # coord alignment
   rgb_img_dim: [1920, 1440]
   cut_num_pixel_boundary: 10
@@ -33,7 +33,7 @@ cluster:
   visi: 0.7 # iou
   recall: 1.0 # recall
   simi: 0.0 # dc_feats
-  point_visi: 0.0
+  point_visi: 0.2
   valid_points: 50
 
 refine_grounding:
@@ -45,8 +45,8 @@ final_instance:
   scale_semantic_score: 300.0
 
 exp:
-  exp_name: "version_test"
-  mask2d_output: 'maskGdino' # 2D mask + pc features
+  exp_name: "version_sam"
+  mask2d_output: 'maskSam' # 2D mask + pc features
   grounded_feat_output: 'grounded_feat' # first stage feature
   refined_grounded_feat_output: 'refined_grounded_feat' # second stage feature
   clustering_3d_output: 'hier_agglo' # 2Dlift path

@@ -278,9 +278,9 @@ def get_parser():
 
 if __name__ == "__main__":
     # Multiprocess logger
-    if os.path.exists("tracker_refine.txt") == False:
-        with open("tracker_refine.txt", "w") as file:
-            file.write("Processed Scenes .\n")
+    # if os.path.exists("tracker_refine.txt") == False:
+    #     with open("tracker_refine.txt", "w") as file:
+    #         file.write("Processed Scenes .\n")
 
     args = get_parser().parse_args()
     cfg = Munch.fromDict(yaml.safe_load(open(args.config, "r").read()))
