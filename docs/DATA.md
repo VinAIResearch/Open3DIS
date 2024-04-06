@@ -2,7 +2,7 @@
 
 We will provide a detailed preprocessing script for every dataset. Our aim is to make the code adaptable to various settings with minimal hard modifications. Keep an eye out for updates!
 
-At this moment, dueing to the license of Scannet, we provide an example processed set of Scannet200 (1 scene) + Scannetpp (1 scene) here: [GoogleDrive](https://drive.google.com/file/d/1t2a5XQqkrauJo1iqheO0oJKQ8PeJBRR0/view?usp=sharing) (We will update more in the future)
+At this moment, dueing to the license of Scannet, we provide an example processed set of Scannet200 (1 scene) + Scannetpp (50 validation scenes) here: [Scannet200](https://drive.google.com/file/d/1t2a5XQqkrauJo1iqheO0oJKQ8PeJBRR0/view?usp=sharing), [Scannetpp](https://drive.google.com/file/d/1p-cl_tpbxkgdgUJscixz5hVdMCntz__v/view?usp=sharing)
 
 ## 3D backbone
 
