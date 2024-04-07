@@ -166,8 +166,8 @@ def hierarchical_agglomerative_clustering(
 
         graph_feat_matrix = pairwise_cosine_similarity(graph_feat, graph_feat)
 
-        # iou_matrix, _, recall_matrix = compute_relation_matrix_self(new_graph, spp, sieve)
-        iou_matrix, _, recall_matrix = compute_relation_matrix_self(new_graph)
+        iou_matrix, _, recall_matrix = compute_relation_matrix_self(new_graph, spp, sieve)
+        # iou_matrix, _, recall_matrix = compute_relation_matrix_self(new_graph)
         
         #####
         adjacency_matrix = (iou_matrix >= visi)
@@ -447,7 +447,6 @@ def process_hierarchical_agglomerative(scene_id, cfg):
     groundedsam_data_dict = torch.load(mask2d_path)
     pcd_list = []
 
-    # groundedsam_data_ptr = 0
     for i in trange(0, len(loader), cfg.data.img_interval):
         frame = loader[i]
         frame_id = frame["frame_id"]
@@ -459,16 +458,10 @@ def process_hierarchical_agglomerative(scene_id, cfg):
                     frame_id = 'frame_'+str(int(frame_id) * 10)
                 else:
                     print('skip: ', frame_id)
-                    continue
             else:
                 print('skip: ', frame_id)
                 continue
 
-        # if frame_id != groundedsam_data_dict['frame_id'][groundedsam_data_ptr]: continue
-
-        # encoded_masks = groundedsam_data_dict['masks'][groundedsam_data_ptr]
-        # groundedsam_data_ptr += 1
-        # image_features = groundedsam_data['total_feature'][groundedsam_data_ptr]
 
         groundedsam_data = groundedsam_data_dict[frame_id]
         encoded_masks = groundedsam_data["masks"]
@@ -534,9 +527,6 @@ def process_hierarchical_agglomerative(scene_id, cfg):
 
         visibility[mapping[:, 3] == 1] += 1
 
-
-        # breakpoint()
-        # breakpoint()
         dic = {"mapping": mapping.cpu(), "masks": masks}
         pcd_list.append(dic)
     
@@ -560,18 +550,13 @@ def process_hierarchical_agglomerative(scene_id, cfg):
     ## These lines take a lot of memory # achieveing in paper result-> unlock this
     if cfg.cluster.point_visi > 0:
         inst_visibility = (proposals_pred.cpu().to(torch.int64) / visibility.clip(min=1e-6)[None, :].cpu().to(torch.float64)).to(torch.float64).cpu()
-        # proposals_pred = proposals_pred.cpu()
         torch.cuda.empty_cache()    
         proposals_pred[inst_visibility < cfg.cluster.point_visi] = 0
-    else: # pointvis==0.0 # Scannetpp
+    else: # pointvis==0.0
         pass
-
-    # inst_visibility = proposals_pred / visibility.cpu().clip(min=1e-6)[None, :]
-    # proposals_pred[inst_visibility < 0.2] = 0
     
     proposals_pred = proposals_pred.bool()
 
-    # breakpoint()
     if cfg.cluster.point_visi > 0:
         proposals_pred_final = custom_scatter_mean(
             proposals_pred,

@@ -8,7 +8,7 @@ __all__ = ["ReplicaReader", "ScanNetReader", "build_dataset"]
 
 
 def build_dataset(root_path, cfg):
-    if "scannet" in cfg.data.dataset_name: # for ScanNet200 and ScanNet++
+    if cfg.data.dataset_name == "scannet200" or cfg.data.dataset_name == "scannetpp":
         return ScanNetReader(root_path, cfg)
     elif cfg.data.dataset_name == "replica":
         return ReplicaReader(root_path, cfg)

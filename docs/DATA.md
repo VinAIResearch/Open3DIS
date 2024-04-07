@@ -2,7 +2,7 @@
 
 We will provide a detailed preprocessing script for every dataset. Our aim is to make the code adaptable to various settings with minimal hard modifications. Keep an eye out for updates!
 
-We provide an example processed set of Scannet200 (1 scene) + Scannetpp (1 scene) here: [GoogleDrive](https://drive.google.com/file/d/1eavd3il1s9r5tq50BK3hqmE0TtQ68kHU/view?usp=sharing)
+At this moment, dueing to the license of Scannet, we provide an example processed set of Scannet200 (1 scene) + Scannetpp (50 validation scenes) here: [Scannet200](https://drive.google.com/file/d/1t2a5XQqkrauJo1iqheO0oJKQ8PeJBRR0/view?usp=sharing), [Scannetpp](https://drive.google.com/file/d/1p-cl_tpbxkgdgUJscixz5hVdMCntz__v/view?usp=sharing)
 
 ## 3D backbone
 
@@ -16,10 +16,10 @@ python tools/test.py <configs> <weights>
 ## Scannet200
 1\) Create data folder:
 ```python
-mkdir -p Dataset/Scannet200
-# mkdir -p Dataset/replica
-# mkdir -p Dataset/S3DIS
-# mkdir -p Dataset/Scannetpp
+mkdir -p data/Scannet200
+# mkdir -p data/replica
+# mkdir -p data/S3DIS
+# mkdir -p data/Scannetpp
 
 ```
 2\) Data tree
@@ -27,8 +27,7 @@ mkdir -p Dataset/Scannet200
 For Scannet200, we construct data tree directory as follow and consider only for validation set:
 
 ```
-Open3DIS <-- (you are here)
-Dataset
+data
 ├── Scannet200
 ############## 2D root folder with default image sampling factor: 5 ##############
 │    ├── Scannet200_2D_5interval 
@@ -69,10 +68,6 @@ Dataset
 │    │    ├── train
 │    │    ├── test 
 ####################################################################################
-pretrains
-├── foundation_models
-|   ├── groundingdino_swint_ogc.pth
-|   ├── sam_vit_h_4b8939.pth
 ```
 
 3\) Generating RGB-D images, camera poses, original PLY, superpoints and inst_nostuff files
@@ -98,10 +93,10 @@ python3 tools/test.py configs/scannet200/isbnet_scannet200.yaml pretrains/scanne
 ## Scannetpp
 1\) Create data folder:
 ```python
-mkdir -p Dataset/Scannetpp
-# mkdir -p Dataset/Scannet200
-# mkdir -p Dataset/replica
-# mkdir -p Dataset/S3DIS
+mkdir -p data/Scannetpp
+# mkdir -p data/Scannet200
+# mkdir -p data/replica
+# mkdir -p data/S3DIS
 
 ```
 2\) Data tree
@@ -110,8 +105,7 @@ mkdir -p Dataset/Scannetpp
 For Scannetpp, we construct data tree directory as follow and consider only for validation set:
 
 ```
-Open3DIS <-- (you are here)
-Dataset
+data
 ├── Scannetpp
 ############## 2D root folder with default image sampling factor: 5 ##############
 │    ├── Scannetpp_2D_5interval 
@@ -155,19 +149,14 @@ Dataset
 │    │    ├── train
 │    │    ├── test 
 ####################################################################################
-pretrains
-├── foundation_models
-|   ├── groundingdino_swint_ogc.pth
-|   ├── sam_vit_h_4b8939.pth
 ```
 
 ## Replica
 
-We special thank Ayca Takmaz for providing groundtruth of Replica dataset for evaluation. We also prepare the preprocessed data of Replica (including 8 scenes) at [OneDrive](https://umass-my.sharepoint.com/:u:/g/personal/tdngo_umass_edu/ERkM9wSgo1BJoZqNOwBuhlABgw42v5P5oiZCChjA3ZQ1og?e=bIYEKx). Download and extract it to `Dataset/Replica`.
+We special thank Ayca Takmaz for providing groundtruth of Replica dataset for evaluation. We also prepare the preprocessed data of Replica (including 8 scenes) at [OneDrive](https://umass-my.sharepoint.com/:u:/g/personal/tdngo_umass_edu/ERkM9wSgo1BJoZqNOwBuhlABgw42v5P5oiZCChjA3ZQ1og?e=bIYEKx). Download and extract it to `data/Replica`.
 
 ```
-Open3DIS <-- (you are here)
-Dataset
+data
 ├── Replica
 ############## 2D root folder with default image sampling factor: 5 ##############
 │    ├── replica_2d 

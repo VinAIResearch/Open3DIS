@@ -27,7 +27,6 @@ class ScanNetReader(object):
         cfg,
     ):
         self.root_path = root_path
-
         self.scene_id = os.path.basename(root_path)
 
         # pipeline does box residual coding here

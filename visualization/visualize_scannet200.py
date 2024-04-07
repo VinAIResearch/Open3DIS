@@ -167,13 +167,13 @@ if __name__ == "__main__":
     ##### The format follows the dataset tree
     ## 1
     check_superpointviz = False
-    spp_path = '../Dataset/Scannet200/Scannet200_3D/val/superpoints/' + scene_id + '.pth'
+    spp_path = './data/Scannet200/Scannet200_3D/val/superpoints/' + scene_id + '.pth'
     ## 2
     check_gtviz = False
-    gt_path = '../Dataset/Scannet200/Scannet200_3D/val/groundtruth/' + scene_id + '.pth'
+    gt_path = './data/Scannet200/Scannet200_3D/val/groundtruth/' + scene_id + '.pth'
     ## 3
     check_3dviz = False
-    mask3d_path = '../Dataset/Scannet200/Scannet200_3D/val/isbnet_clsagnostic_scannet200/' + scene_id + '.pth'
+    mask3d_path = './data/Scannet200/Scannet200_3D/val/isbnet_clsagnostic_scannet200/' + scene_id + '.pth'
     ## 4
     check_2dviz = True
     mask2d_path = '../exp/version_sam/hier_agglo/' + scene_id + '.pth'
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     pyviz3d_dir = '../viz' # visualization directory
 
     # Visualize Point Cloud 
-    ply_file = '../Dataset/Scannet200/Scannet200_3D/val/original_ply_files'
+    ply_file = './data/Scannet200/Scannet200_3D/val/original_ply_files'
     point, color = read_pointcloud(os.path.join(ply_file,scene_id + '.ply'))
     color = color * 127.5
 

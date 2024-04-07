@@ -86,10 +86,6 @@ def get_final_instances(
     else:
         pc_features = torch.load(pc_features_path)["feat"].cuda().half()
 
-    # dir_feat = '/home/tdngo/Workspace/3dis_ws/Open3DInstanceSegmentation/Dataset/replica/version_final/computed_feature'
-    # pc_features = torch.load(os.path.join(dir_feat, f"{scene_id}_grounded_ov.pt"))["feat"].cuda().half()
-
-    # pc_features = torch.load(pc_features_path)["feat"].cuda().half()
     pc_features = F.normalize(pc_features, dim=1, p=2)
 
     # if cfg.data.dataset_name == 's3dis':
@@ -190,8 +186,6 @@ def get_final_instances(
     inst_class_scores = inst_class_scores / instance.float().cuda().sum(dim=1)[:, None]  # K x classes
 
     # # NOTE Top-K instances
-    # new_confidence = torch.where((confidence > 0), confidence, confidence).cuda()
-    # inst_class_scores = torch.sqrt(inst_class_scores*confidence[:, None].cuda())
     inst_class_scores = inst_class_scores.reshape(-1)  # n_cls * n_queries
 
     labels = (
@@ -207,14 +201,10 @@ def get_final_instances(
     _, idx = torch.topk(inst_class_scores, k=min(cur_topk, len(inst_class_scores)), largest=True)
     mask_idx = torch.div(idx, cfg.data.num_classes, rounding_mode="floor")
 
-
-    # breakpoint()
-
     cls_final = labels[idx]
     scores_final = inst_class_scores[idx].cuda()
     masks_final = instance[mask_idx]
 
-    # breakpoint()
     return masks_final, cls_final, scores_final
 
 
@@ -271,19 +261,13 @@ if __name__ == "__main__":
         
         
 
-    # text_features_path = f"../pretrains/text_features/{cfg.data.dataset_name}_text_features.pth"
-    # if os.path.exists(text_features_path):
-    #     text_features = torch.load(text_features_path).cuda().half()
-    # else:
     clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(
         cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint
     )
-    # adapter, _, preprocess = open_clip.create_model_and_transforms('ViT-L-14-336', pretrained='openai')
     clip_adapter = clip_adapter.cuda()
     with torch.no_grad(), torch.cuda.amp.autocast():
         text_features = clip_adapter.encode_text(open_clip.tokenize(class_names).cuda())
         text_features /= text_features.norm(dim=-1, keepdim=True)
-        # torch.save(text_features.cpu(), text_features_path)
 
     # Prepare directories
     save_dir_cluster = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.clustering_3d_output)
@@ -338,23 +322,22 @@ if __name__ == "__main__":
             cluster_dict = torch.load(os.path.join(save_dir_cluster, f"{scene_id}.pth"))
             #############################################
             # NOTE get final instances
-            # if False:
-            
-            masks_final, cls_final, scores_final = get_final_instances(
-                cfg,
-                text_features,
-                cluster_dict=cluster_dict,
-                use_2d_proposals=cfg.proposals.p2d,
-                use_3d_proposals=cfg.proposals.p3d,
-                only_instance=cfg.proposals.agnostic,
-            )
-            final_dict = {
-                "ins": rle_encode_gpu_batch(masks_final),
-                "conf": scores_final.cpu(),
-                "final_class": cls_final.cpu(),
-            }
-            # NOTE Final instance
-            torch.save(final_dict, os.path.join(save_dir_final, f"{scene_id}.pth"))
+            if False:   
+                masks_final, cls_final, scores_final = get_final_instances(
+                    cfg,
+                    text_features,
+                    cluster_dict=cluster_dict,
+                    use_2d_proposals=cfg.proposals.p2d,
+                    use_3d_proposals=cfg.proposals.p3d,
+                    only_instance=cfg.proposals.agnostic,
+                )
+                final_dict = {
+                    "ins": rle_encode_gpu_batch(masks_final),
+                    "conf": scores_final.cpu(),
+                    "final_class": cls_final.cpu(),
+                }
+                # NOTE Final instance
+                torch.save(final_dict, os.path.join(save_dir_final, f"{scene_id}.pth"))
             #############################################
             # NOTE Evaluation openvocab
             if evaluate_openvocab:
