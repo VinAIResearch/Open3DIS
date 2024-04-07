@@ -194,3 +194,46 @@ Dataset
 │    ├── dc_feat_replica_scannet200 
 │    │    │    office0.pth
 │    │    │    ...
+```
+
+## S3DIS
+
+For S3DIS, we use the un-aligned version at [here](http://buildingparser.stanford.edu/dataset.html).
+We prepare the preprocessed data of S3DIS at [OneDrive](https://umass-my.sharepoint.com/:u:/g/personal/tdngo_umass_edu/ERn6i37no4hKrP2TV4_jZbkBhsUVhM7hIJGOJejudXrHNg?e=L25wnN). Download and extract it to `Dataset/s3dis`.
+
+```
+Open3DIS <-- (you are here)
+Dataset
+├── s3dis
+############## 2D root folder with default image sampling factor: 5 ##############
+│    ├── data_2d 
+│    │    ├── Area_4     
+│    │    |    ├── office_1
+│    │    |    |    ├── depth
+│    │    │    │    │    │    x.png
+│    │    |    │    │    |   ...
+│    │    |    |    ├── pose
+│    │    │    │    │    │    x.npz
+│    │    |    │    │    |   ...
+│    │    |    |    ├── rgb
+│    │    │    │    │    │    x.png
+│    │    |    │    │    |   ...
+│    │    |    ├── hallway_1
+│    │    |    |   ...
+│    │    ├── ...
+│    ├── preprocess_open3dis 
+│    │    │    Area_X_office_1.pth
+│    │    │    Area_X_hallway_1.pth
+│    │    │    ...
+│    ├── superpoints_open3dis 
+│    │    │    Area_X_office_1.pth
+│    │    │    Area_X_hallway_1.pth
+│    │    │    ...
+│    ├── s3dis_areaX_cls_agnostic_pretrainfold4 
+│    │    │    Area_X_office_1.pth
+│    │    │    Area_X_hallway_1.pth
+│    │    │    ...
+│    ├── dc_feat_s3dis_areaX 
+│    │    │    Area_X_office_1.pth
+│    │    │    Area_X_hallway_1.pth
+│    │    │    ...

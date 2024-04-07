@@ -12,6 +12,7 @@ from munch import Munch
 from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200 # Scannet200
 from open3dis.dataset.scannetpp import SEMANTIC_CAT_SCANNET_PP # ScannetPP
 from open3dis.dataset.replica import INSTANCE_CAT_REPLICA
+from open3dis.dataset.s3dis import INSTANCE_CAT_S3DIS, AREA
 
 from open3dis.evaluation.scannetv2_inst_eval import ScanNetEval
 from open3dis.src.clustering.clustering import process_hierarchical_agglomerative
@@ -91,6 +92,18 @@ def get_final_instances(
     # pc_features = torch.load(pc_features_path)["feat"].cuda().half()
     pc_features = F.normalize(pc_features, dim=1, p=2)
 
+    # if cfg.data.dataset_name == 's3dis':
+    #     n_points = len(pc_features)
+    #     if n_points > 1000000:
+    #         stride = 8
+    #     elif n_points >= 600000:
+    #         stride = 6
+    #     elif n_points >= 400000:
+    #         stride = 2
+    #     else:
+    #         stride = 1
+    #     pc_features = pc_features[::stride]
+
     # 2D lifting 3D mask path
     cluster_dict_path = os.path.join(exp_path, cfg.exp.clustering_3d_output, f"{scene_id}.pth")
 
@@ -108,7 +121,10 @@ def get_final_instances(
 
     ########### Proposal branch selection ###########
     if use_3d_proposals:
-        agnostic3d_path = os.path.join(cfg.data.cls_agnostic_3d_proposals_path, f"{scene_id}.pth")
+        if cfg.data.dataset_name == 's3dis':
+            agnostic3d_path = os.path.join(cfg.data.cls_agnostic_3d_proposals_path, f"{AREA}_{scene_id}.pth")
+        else:
+            agnostic3d_path = os.path.join(cfg.data.cls_agnostic_3d_proposals_path, f"{scene_id}.pth")
         agnostic3d_data = torch.load(agnostic3d_path)
         instance_3d_encoded = np.array(agnostic3d_data["ins"])
         confidence_3d = torch.tensor(agnostic3d_data["conf"]).cuda()
@@ -168,6 +184,7 @@ def get_final_instances(
     #     end = min(start + bs, pc_features.shape[0])
     #     predicted_class[start:end] = (cfg.final_instance.scale_semantic_score * pc_features[start:end].cpu() @ text_features.T.cpu().to(torch.float32)).softmax(dim=-1).cpu()
 
+    # breakpoint()
     # NOTE Mask-wise semantic scores
     inst_class_scores = torch.einsum("kn,nc->kc", instance.float(), predicted_class.float()).cuda()  # K x classes
     inst_class_scores = inst_class_scores / instance.float().cuda().sum(dim=1)[:, None]  # K x classes
@@ -218,6 +235,9 @@ if __name__ == "__main__":
     evaluate_openvocab = cfg.evaluate.evalvocab  # Evaluation for openvocab
     evaluate_agnostic = cfg.evaluate.evalagnostic  # Evaluation for openvocab
 
+
+    # evaluate_openvocab = True
+
     with open(cfg.data.split_path, "r") as file:
         scene_ids = sorted([line.rstrip("\n") for line in file])
 
@@ -228,6 +248,28 @@ if __name__ == "__main__":
         class_names = SEMANTIC_CAT_SCANNET_PP    
     elif cfg.data.dataset_name == 'replica':
         class_names = INSTANCE_CAT_REPLICA
+    elif cfg.data.dataset_name == 's3dis':     
+        class_names = INSTANCE_CAT_S3DIS
+    else:
+        raise ValueError(f"Unknown dataset: {cfg.data.dataset_name}")
+
+    if evaluate_openvocab:
+        scan_eval = ScanNetEval(class_labels=class_names, dataset_name=cfg.data.dataset_name)
+        gtsem = []
+        gtinst = []
+        res = []
+        # if cfg.data.dataset_name == 'scannet200':
+        #     scan_eval = ScanNetEval(class_labels=INSTANCE_CAT_SCANNET_200)
+        # elif cfg.data.dataset_name == 'scannetpp':
+        #     scan_eval = ScanNetEval(class_labels=SEMANTIC_CAT_SCANNET_PP)   
+        # elif cfg.data.dataset_name == 'replica':     
+        #     scan_eval = ScanNetEval(class_labels=INSTANCE_CAT_REPLICA, dataset_name='replica')
+        # elif cfg.data.dataset_name == 's3dis':     
+        #     scan_eval = ScanNetEval(class_labels=INSTANCE_CAT_S3DIS, dataset_name='s3dis')
+        # else:
+        #     raise ValueError(f"Unknown dataset: {cfg.data.dataset_name}")
+        
+        
 
     # text_features_path = f"../pretrains/text_features/{cfg.data.dataset_name}_text_features.pth"
     # if os.path.exists(text_features_path):
@@ -255,22 +297,9 @@ if __name__ == "__main__":
     #         file.write("Processed Scenes .\n")
 
     # breakpoint()
-    evaluate_openvocab = True
 
     with torch.cuda.amp.autocast(enabled=cfg.fp16):
-        if evaluate_openvocab:
-            if cfg.data.dataset_name == 'scannet200':
-                scan_eval = ScanNetEval(class_labels=INSTANCE_CAT_SCANNET_200)
-            elif cfg.data.dataset_name == 'scannetpp':
-                scan_eval = ScanNetEval(class_labels=SEMANTIC_CAT_SCANNET_PP)   
-            elif cfg.data.dataset_name == 'replica':     
-                scan_eval = ScanNetEval(class_labels=INSTANCE_CAT_REPLICA, dataset_name='replica')
-            else:
-                raise ValueError(f"Unknown dataset: {cfg.data.dataset_name}")
-            
-            gtsem = []
-            gtinst = []
-            res = []
+        
 
         for scene_id in tqdm(scene_ids):
             print("Process", scene_id)
@@ -291,20 +320,20 @@ if __name__ == "__main__":
             # with open("tracker_lifted.txt", "a") as file:
             #     file.write(path + "\n")
 
-            # if os.path.exists(os.path.join(save_dir_cluster, f"{scene_id}.pth")): 
+            # if os.path.exists(os.path.join(save_dir_final, f"{scene_id}.pth")): 
             #     print(f"Skip {scene_id} as it already exists")
             #     continue
 
             #############################################
             # NOTE hierarchical agglomerative clustering
-            if True:
-                cluster_dict = None
-                proposals3d, confidence = process_hierarchical_agglomerative(scene_id, cfg)
-                cluster_dict = {
-                    "ins": rle_encode_gpu_batch(proposals3d),
-                    "conf": confidence,
-                }
-                torch.save(cluster_dict, os.path.join(save_dir_cluster, f"{scene_id}.pth"))
+            # if True:
+            # cluster_dict = None
+            proposals3d, confidence = process_hierarchical_agglomerative(scene_id, cfg)
+            cluster_dict = {
+                "ins": rle_encode_gpu_batch(proposals3d),
+                "conf": confidence,
+            }
+            torch.save(cluster_dict, os.path.join(save_dir_cluster, f"{scene_id}.pth"))
 
             cluster_dict = torch.load(os.path.join(save_dir_cluster, f"{scene_id}.pth"))
             #############################################
@@ -329,8 +358,30 @@ if __name__ == "__main__":
             #############################################
             # NOTE Evaluation openvocab
             if evaluate_openvocab:
-                gt_path = os.path.join(cfg.data.gt_pth, f"{scene_id}.pth")
-                _, _, sem_gt, inst_gt = torch.load(gt_path)
+                
+
+                if cfg.data.dataset_name == 's3dis':
+                    gt_path = os.path.join(cfg.data.gt_pth, f"{AREA}_{scene_id}.pth")
+                    _, _, sem_gt, inst_gt = torch.load(gt_path)
+                    n_points = len(sem_gt)
+                    if n_points > 1000000:
+                        stride = 8
+                    elif n_points >= 600000:
+                        stride = 6
+                    elif n_points >= 400000:
+                        stride = 2
+                    else:
+                        stride = 1
+                    sem_gt = sem_gt[::stride]
+                    inst_gt = inst_gt[::stride]
+
+                    # NOTE do not eval class "clutter"
+                    inst_gt[sem_gt==12] = -100
+                    sem_gt[sem_gt==12] = -100
+                else:
+                    gt_path = os.path.join(cfg.data.gt_pth, f"{scene_id}.pth")
+                    _, _, sem_gt, inst_gt = torch.load(gt_path)
+
                 gtsem.append(np.array(sem_gt).astype(np.int32))
                 gtinst.append(np.array(inst_gt).astype(np.int32))
 

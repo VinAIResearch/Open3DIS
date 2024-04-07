@@ -167,6 +167,10 @@ def refine_grounding_features(
     mappings = []
     images = []
 
+    if cfg.data.dataset_name == 's3dis':
+        target_frame = 300
+        interval = max(interval, len(loader) // target_frame)
+
     for i in trange(0, len(loader), interval):
         frame = loader[i]
         frame_id = frame["frame_id"]  # str
@@ -180,7 +184,6 @@ def refine_grounding_features(
             depth = cv2.resize(depth, (img_dim[0], img_dim[1]))
             mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
             mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["translated_intrinsics"])
-
         elif "scannet200" in cfg.data.dataset_name:
             mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
             mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
@@ -188,11 +191,12 @@ def refine_grounding_features(
                 torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
             )
             mapping[:, 1:4] = torch.cat((new_mapping, mapping[:, 3].unsqueeze(1)), dim=1)
-
         elif "replica" in cfg.data.dataset_name:
             mapping = torch.ones([n_points, 4], dtype=int, device='cuda')
             mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
-
+        elif "s3dis" in cfg.data.dataset_name:
+            mapping = torch.ones([n_points, 4], dtype=int, device='cuda')
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic=frame["intrinsics"])
         else:
             raise ValueError(f"Unknown dataset: {cfg.data.dataset_name}")
 
@@ -278,9 +282,9 @@ def get_parser():
 
 if __name__ == "__main__":
     # Multiprocess logger
-    if os.path.exists("tracker_refine.txt") == False:
-        with open("tracker_refine.txt", "w") as file:
-            file.write("Processed Scenes .\n")
+    # if os.path.exists("tracker_refine.txt") == False:
+    #     with open("tracker_refine.txt", "w") as file:
+    #         file.write("Processed Scenes .\n")
 
     args = get_parser().parse_args()
     cfg = Munch.fromDict(yaml.safe_load(open(args.config, "r").read()))

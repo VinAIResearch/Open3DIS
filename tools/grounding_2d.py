@@ -34,6 +34,7 @@ from segment_anything import SamPredictor, build_sam, build_sam_hq
 from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200 # Scannet200
 from open3dis.dataset.scannetpp import SEMANTIC_CAT_SCANNET_PP # ScannetPP
 from open3dis.dataset.replica import INSTANCE_CAT_REPLICA
+from open3dis.dataset.s3dis import INSTANCE_CAT_S3DIS
 from open3dis.dataset.scannet_loader import ScanNetReader, scaling_mapping
 from open3dis.dataset import build_dataset
 
@@ -308,9 +309,9 @@ def gen_grounded_mask_and_feat(
                 show_mask(mask.cpu().numpy(), plt.gca(), random_color=True)
             plt.axis("off")
             # plot out
-            os.makedirs("./debug/" + scene_id, exist_ok=True)
+            os.makedirs("./debug/s3dis/" + scene_id, exist_ok=True)
             plt.savefig(
-                os.path.join("./debug/" + scene_id + "/sam_" + str(i) + ".jpg"),
+                os.path.join("./debug/s3dis/" + scene_id + "/sam_" + str(i) + ".jpg"),
                 bbox_inches="tight",
                 dpi=300,
                 pad_inches=0.0,
@@ -330,7 +331,7 @@ def gen_grounded_mask_and_feat(
             if "scannetpp" in cfg.data.dataset_name:  # Map on image resolution in Scannetpp only
                 depth = cv2.resize(depth, (img_dim[0], img_dim[1]))
                 mapping = torch.ones([n_points, 4], dtype=int, device="cuda")
-                mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["translated_intrinsics"])
+                mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic=frame["translated_intrinsics"])
 
             elif "scannet200" in cfg.data.dataset_name:
                 mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
@@ -343,6 +344,10 @@ def gen_grounded_mask_and_feat(
             elif "replica" in cfg.data.dataset_name:
                 mapping = torch.ones([n_points, 4], dtype=int, device='cuda')
                 mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+
+            elif "s3dis" in cfg.data.dataset_name:
+                mapping = torch.ones([n_points, 4], dtype=int, device='cuda')
+                mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic=frame["intrinsics"])
 
             else:
                 raise ValueError(f"Unknown dataset: {cfg.data.dataset_name}")
@@ -387,6 +392,10 @@ if __name__ == "__main__":
         class_names = SEMANTIC_CAT_SCANNET_PP    
     elif cfg.data.dataset_name == 'replica':
         class_names = INSTANCE_CAT_REPLICA
+    elif cfg.data.dataset_name == 's3dis':
+        class_names = INSTANCE_CAT_S3DIS
+    else:
+        raise ValueError(f"Unknown dataset: {cfg.data.dataset_name}")
 
     # Directory Init
     save_dir = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.mask2d_output)

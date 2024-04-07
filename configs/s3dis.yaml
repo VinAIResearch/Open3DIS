@@ -1,0 +1,67 @@
+foundation_model:
+  grounded_config_file: './segmenter2d/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py'
+  grounded_checkpoint: './pretrains/foundation_models/groundingdino_swint_ogc.pth'
+  sam_checkpoint: './pretrains/foundation_models/sam_vit_h_4b8939.pth'
+  clip_model: 'ViT-L-14-336'
+  clip_checkpoint: 'openai'
+  device: 'cuda'
+  box_threshold: 0.4
+  text_threshold: 0.4
+  clip_dim: 768
+
+
+grounded_feature:
+  granularity: 0.8
+
+data:
+  dataset_name: 's3dis'
+  split_path: './open3dis/dataset/s3dis_full_split.txt'
+  datapath: './data/s3dis/data_2d/Area_4'
+  gt_pth: './data/s3dis/preprocess_open3dis'
+  original_ply: './data/s3dis/replica_plys'
+  spp_path: './data/s3dis/superpoints_open3dis'
+  cls_agnostic_3d_proposals_path: './data/s3dis/s3dis_area4_cls_agnostic_pretrainfold4'
+  dc_features_path: './data/s3dis/dc_feat_s3dis_area4'
+  img_dim: [1080, 1080]
+  rgb_img_dim: [1080, 1080]
+  cut_num_pixel_boundary: 10
+  img_interval: 1
+  num_classes: 13
+
+cluster:
+  visi: 0.5
+  recall: 0.5 # recall
+  simi: 0.5
+  point_visi: 0.0
+  valid_points: 50
+  iterative: True
+
+refine_grounding:
+  top_k: 5
+
+final_instance:
+  iou_overlap: 0.9
+  top_k: 300
+  scale_semantic_score: 300.0
+
+exp:
+  exp_name: "version_s3dis"
+  mask2d_output: 'maskGdino'
+  grounded_feat_output: 'grounded_feat'
+  refined_grounded_feat_output: 'refined_grounded_feat'
+  clustering_3d_output: 'hier_agglo'
+  final_output: 'final_result_hier_agglo'
+  save_dir: './exp'
+
+proposals:
+  p2d: True # 2D branch
+  p3d: False # 3D branch
+  agnostic: False # returning class-agnostic masks (without class + scores)
+  refined: True # feature branch, setting this True uses refined feature, else uses feature from 2D branch
+                # refer to VinAI-3DIS solution (two-stage feature): https://arxiv.org/pdf/2402.15321.pdf 
+
+evaluate:
+  evalvocab: True # AP evaluation for OV-3DIS
+  evalagnostic: False # AP evaluation for agnostic 3DIS
+
+fp16: True

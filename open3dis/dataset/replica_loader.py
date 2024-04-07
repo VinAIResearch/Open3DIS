@@ -106,6 +106,26 @@ class ReplicaReader(object):
         point, _, _, _ = torch.load(f"data/replica/replica_3d/{self.scene_id}.pth")
         
         return point
+    
+    def read_spp(self, spp_path, device='cuda'):
+        spp = torch.load(spp_path)
+        if isinstance(np.ndarray, spp):
+            spp = torch.from_numpy(spp)
+        spp = spp.to(device)
+
+        return spp
+    
+    def read_feature(self, feat_path, device='cuda'):
+        dc_feature = torch.load(feat_path)
+        if isinstance(dc_feature, np.ndarray):
+            dc_feature = torch.from_numpy(dc_feature)
+        
+        dc_feature = dc_feature.to(device)
+        return dc_feature
+    
+    def read_3D_proposal(self, agnostic3d_path):
+        agnostic3d_data = torch.load(agnostic3d_path)
+        return agnostic3d_data
 
     def __getitem__(self, idx):
         """

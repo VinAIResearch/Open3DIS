@@ -421,14 +421,13 @@ def process_hierarchical_agglomerative(scene_id, cfg):
     points = torch.from_numpy(points).cuda()
     n_points = points.shape[0]
 
-    spp = torch.tensor(torch.load(spp_path)).cuda() # memory ease
-    n_spp = torch.unique(spp).shape[0]
+    # spp = torch.tensor(torch.load(spp_path)).cuda() # memory ease
+    # n_spp = torch.unique(spp).shape[0]
+    spp = loader.read_spp(spp_path)
     unique_spp, spp, num_point = torch.unique(spp, return_inverse=True, return_counts=True)
+    n_spp = len(unique_spp)
 
-    dc_feature = torch.load(dc_feature_path)
-    if isinstance(dc_feature, np.ndarray):
-        dc_feature = torch.from_numpy(dc_feature)
-    dc_feature = dc_feature.cuda().float()
+    dc_feature = loader.read_feature(dc_feature_path)
 
     dc_feature_spp = torch_scatter.scatter(dc_feature, spp, dim=0, reduce="sum")
     dc_feature_spp = F.normalize(dc_feature_spp, dim=1, p=2)
@@ -443,6 +442,7 @@ def process_hierarchical_agglomerative(scene_id, cfg):
 
     # FIXME 
 
+    # breakpoint()
     # mask2d_path = f'/home/tdngo/Workspace/3dis_ws/Open3DInstanceSegmentation/Dataset/replica/version_final/maskGdino0404conf/{scene_id}.pth'
     groundedsam_data_dict = torch.load(mask2d_path)
     pcd_list = []
@@ -526,7 +526,9 @@ def process_hierarchical_agglomerative(scene_id, cfg):
             mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
             # new_mapping = pointcloud_mapper(torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1])
             # mapping[:, 1:4] = torch.cat((new_mapping,mapping[:,3].unsqueeze(1)),dim=1)
-
+        elif "s3dis" in cfg.data.dataset_name:
+            mapping = torch.ones([n_points, 4], dtype=int, device='cuda')
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic=frame["intrinsics"])
         else:
             raise ValueError(f"Unknown dataset: {cfg.data.dataset_name}")
 
