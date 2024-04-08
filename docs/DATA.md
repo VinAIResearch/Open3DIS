@@ -14,15 +14,6 @@ python tools/test.py <configs> <weights>
 ```
 
 ## Scannet200
-1\) Create data folder:
-```python
-mkdir -p data/Scannet200
-# mkdir -p data/replica
-# mkdir -p data/S3DIS
-# mkdir -p data/Scannetpp
-
-```
-2\) Data tree
 
 For Scannet200, we construct data tree directory as follow and consider only for validation set:
 
@@ -70,7 +61,7 @@ data
 ####################################################################################
 ```
 
-3\) Generating RGB-D images, camera poses, original PLY, superpoints and inst_nostuff files
+1\) Generating RGB-D images, camera poses, original PLY, superpoints and inst_nostuff files
 
 * Download the [ScannetV2 dataset](http://www.scan-net.org/)
 
@@ -78,7 +69,7 @@ data
 
 * Please refer to [Superpoints and inst_nostuff](https://github.com/VinAIResearch/ISBNet/tree/master/dataset/scannet200)
 
-4\) Generating class-agnostic 3D proposals and 3D deep features
+2\) Generating class-agnostic 3D proposals and 3D deep features
 
 * ISBNet
 
@@ -91,16 +82,6 @@ python3 tools/test.py configs/scannet200/isbnet_scannet200.yaml pretrains/scanne
 * More 3DIS backbone will be updated...
 
 ## Scannetpp
-1\) Create data folder:
-```python
-mkdir -p data/Scannetpp
-# mkdir -p data/Scannet200
-# mkdir -p data/replica
-# mkdir -p data/S3DIS
-
-```
-2\) Data tree
-
 
 For Scannetpp, we construct data tree directory as follow and consider only for validation set:
 
@@ -191,8 +172,7 @@ For S3DIS, we use the un-aligned version at [here](http://buildingparser.stanfor
 We prepare the preprocessed data of S3DIS at [OneDrive](https://umass-my.sharepoint.com/:u:/g/personal/tdngo_umass_edu/ERn6i37no4hKrP2TV4_jZbkBhsUVhM7hIJGOJejudXrHNg?e=L25wnN). Download and extract it to `Dataset/s3dis`.
 
 ```
-Open3DIS <-- (you are here)
-Dataset
+data
 ├── s3dis
 ############## 2D root folder with default image sampling factor: 5 ##############
 │    ├── data_2d 
