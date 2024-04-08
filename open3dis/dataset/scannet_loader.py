@@ -90,7 +90,7 @@ class ScanNetReader(object):
     
     def read_spp(self, spp_path, device='cuda'):
         spp = torch.load(spp_path)
-        if isinstance(np.ndarray, spp):
+        if isinstance(spp, np.ndarray):
             spp = torch.from_numpy(spp)
         spp = spp.to(device)
 

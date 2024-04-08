@@ -549,7 +549,13 @@ def process_hierarchical_agglomerative(scene_id, cfg):
 
     ## These lines take a lot of memory # achieveing in paper result-> unlock this
     if cfg.cluster.point_visi > 0:
-        inst_visibility = (proposals_pred.cpu().to(torch.int64) / visibility.clip(min=1e-6)[None, :].cpu().to(torch.float64)).to(torch.float64).cpu()
+        start = 0
+        end = proposals_pred.shape[0]
+        inst_visibility = torch.zeros_like(proposals_pred, dtype=torch.float64).cpu()
+        bs = 1000
+        while(start<end):
+            inst_visibility[start:start+bs] = (proposals_pred[start:start+bs] / visibility.clip(min=1e-6)[None, :].cpu().to(torch.float64))
+            start += bs
         torch.cuda.empty_cache()    
         proposals_pred[inst_visibility < cfg.cluster.point_visi] = 0
     else: # pointvis==0.0
@@ -567,11 +573,9 @@ def process_hierarchical_agglomerative(scene_id, cfg):
         )
         proposals_pred = (proposals_pred_final >= 0.5)[:, spp]
 
+    ## Valid points
     mask_valid = proposals_pred.sum(1) > cfg.cluster.valid_points
     proposals_pred = proposals_pred[mask_valid].cpu()
     confidence = confidence[mask_valid].cpu()
-
-
-    # breakpoint()
 
     return proposals_pred, confidence
