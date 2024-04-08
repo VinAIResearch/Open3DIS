@@ -23,8 +23,8 @@
 <a href="https://github.com/PhucNDA" target="_blank">Phuc&nbsp;Nguyen</a> &emsp; <b>&middot;</b> &emsp;
 <a href="https://ngoductuanlhp.github.io/" target="_blank">Tuan&nbsp;Duc&nbsp;Ngo</a>
 <br><br>
-<a href="https://people.csail.mit.edu/ganchuang/" target="_blank">Chuang&nbsp;Gan</a> &emsp; <b>&middot;</b> &emsp;
-<a href="https://people.cs.umass.edu/~kalo/" target="_blank">Evangelos&nbsp;Kalogerakis</a>
+<a href="https://people.cs.umass.edu/~kalo/" target="_blank">Evangelos&nbsp;Kalogerakis</a></b> &emsp; <b>&middot;&emsp;
+<a href="https://people.csail.mit.edu/ganchuang/" target="_blank">Chuang&nbsp;Gan</a> &emsp;
 <br><br>
 <a href="https://scholar.google.com/citations?user=FYZ5ODQAAAAJ&hl=en" target="_blank">Anh&nbsp;Tran</a> &emsp; <b>&middot;</b> &emsp;
 <a href="https://sites.google.com/view/cuongpham/home" target="_blank">Cuong&nbsp;Pham</a> &emsp; <b>&middot;</b> &emsp;
@@ -59,7 +59,7 @@ Details of the model architecture and experimental results can be found in [our 
 ## Features :mega:
 * State-of-the-art performance of Open-Vocabulary Instance Segmentation on ScanNet200, S3DIS, and Replica.
 * Support Open-Vocabulary queries: affordances, materials, color, shape, etc.
-* Reproducibility code for both ScanNet200, and Replica, Scannet++ datasets.
+* Reproducibility code for both ScanNet200, Replica, S3DIS and Scannet++ datasets!
 * Demo application for scene visualization
 
 
