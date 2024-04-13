@@ -4,6 +4,8 @@ We will provide a detailed preprocessing script for every dataset. Our aim is to
 
 At this moment, dueing to the license of Scannet, we provide an example processed set of Scannet200 (1 scene) + Scannetpp (50 validation scenes) here: [Scannet200](https://drive.google.com/file/d/1t2a5XQqkrauJo1iqheO0oJKQ8PeJBRR0/view?usp=sharing), [Scannetpp](https://drive.google.com/file/d/1p-cl_tpbxkgdgUJscixz5hVdMCntz__v/view?usp=sharing)
 
+Please, follow Scannet and Scannet++ license to use our preprocessed dataset.
+
 ## 3D backbone
 
 Running 3D backbone ISBNet will create isbnet_clsagnostic, dc_feat folders!
@@ -124,7 +126,7 @@ data
 |    │    │    ├── isbnet_clsagnostic_scannet200            <- class agnostic 3D proposals
 |    │    │    │     0d2ee665be.pth
 |    │    │    │     ...
-|    │    │    ├── dc_feat_scannet200                       <- 3D deep feature of 3D proposals network
+|    │    │    ├── dc_feat_scannetpp                        <- 3D deep feature of 3D proposals network
 |    │    │    │     0d2ee665be.pth
 |    │    │    │     ...
 │    │    ├── train

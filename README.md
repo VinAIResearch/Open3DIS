@@ -11,29 +11,31 @@
 1. [Installation guide](#Installation_guide)
 2. [Data Preparation](#Data_Preparation) 
 3. [Run the code](#Run_the_code)
-4. [TODO](#TODO)
-5. [Acknowledgments](#Acknowledgments)
-6. [Contacts](#Contacts)
+4. [Acknowledgments](#Acknowledgments)
+5. [Contacts](#Contacts)
 
-# Open3DIS: Open-vocabulary 3D Instance Segmentation with 2D Mask Guidance [CVPR'24](https://cvpr.thecvf.com/)
+# Open3DIS: Open-Vocabulary 3D Instance Segmentation with 2D Mask Guidance [CVPR'24](https://cvpr.thecvf.com/)
+
 <a href="https://open3dis.github.io/"><img src="https://img.shields.io/badge/Website-open3dis.github.io-blue?style=for-the-badge"></a>
+<a href="https://arxiv.org/abs/2312.10671"><img src="https://img.shields.io/badge/arxiv-2312.10671-red?style=for-the-badge"></a>
+
+<!-- <a href="https://open3dis.github.io/"><img src="https://img.shields.io/badge/Website-open3dis.github.io-blue?style=for-the-badge"></a>
 <a href="https://arxiv.org/abs/2312.10671"><img src="https://img.shields.io/badge/arxiv-2312.10671-red?style=for-the-badge"></a>
 
 <div align="center">
 <a href="https://github.com/PhucNDA" target="_blank">Phuc&nbsp;Nguyen</a> &emsp; <b>&middot;</b> &emsp;
 <a href="https://ngoductuanlhp.github.io/" target="_blank">Tuan&nbsp;Duc&nbsp;Ngo</a>
 <br><br>
-<a href="https://people.cs.umass.edu/~kalo/" target="_blank">Evangelos&nbsp;Kalogerakis</a></b> &emsp; <b>&middot;&emsp;
+<a href="https://people.cs.umass.edu/~kalo/" target="_blank">Evangelos&nbsp;Kalogerakis</a></b> &emsp; &middot;&emsp;
 <a href="https://people.csail.mit.edu/ganchuang/" target="_blank">Chuang&nbsp;Gan</a> &emsp;
 <br><br>
 <a href="https://scholar.google.com/citations?user=FYZ5ODQAAAAJ&hl=en" target="_blank">Anh&nbsp;Tran</a> &emsp; <b>&middot;</b> &emsp;
 <a href="https://sites.google.com/view/cuongpham/home" target="_blank">Cuong&nbsp;Pham</a> &emsp; <b>&middot;</b> &emsp;
-<a href="https://www.khoinguyen.org/" target="_blank">Khoi&nbsp;Nguyen</a> 
-<br><br>
-VinAI Research &emsp; <b>&middot;</b> &emsp; Posts & Telecommunications Inst. of Tech.
-
-MIT-IBM Watson AI Lab &emsp; <b>&middot;</b> &emsp; UMass Amherst
-<br><br>
+<a href="https://www.khoinguyen.org/" target="_blank">Khoi&nbsp;Nguyen</a>  -->
+<!-- <br><br> -->
+<!-- VinAI Research &emsp; <b>&middot;</b> &emsp; Posts & Telecommunications Inst. of Tech.
+MIT-IBM Watson AI Lab &emsp; <b>&middot;</b> &emsp; UMass Amherst -->
+<!-- <br><br> -->
 </div>
 
 
@@ -45,13 +47,11 @@ To validate our approach, we conducted experiments on three prominent datasets, 
 
 Details of the model architecture and experimental results can be found in [our paper](https://arxiv.org/abs/2312.10671):
 ```bibtext
-@misc{nguyen2023open3dis,
-        title={Open3DIS: Open-vocabulary 3D Instance Segmentation with 2D Mask Guidance}, 
+@inproceedings{nguyen2023open3dis,
+        title={Open3DIS: Open-Vocabulary 3D Instance Segmentation with 2D Mask Guidance}, 
         author={Phuc D. A. Nguyen and Tuan Duc Ngo and Chuang Gan and Evangelos Kalogerakis and Anh Tran and Cuong Pham and Khoi Nguyen},
-        year={2023},
-        eprint={2312.10671},
-        archivePrefix={arXiv},
-        primaryClass={cs.CV}
+        year={2024},
+        booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}
 }
 ```
 **Please CITE** our paper whenever this repository is used to help produce published results or incorporated into other software.
@@ -76,7 +76,7 @@ Please refer to [data preparation guide](docs/DATA.md)
 
 Please refer to [running the code guide](docs/RUN.md)
 
-## TODO
+<!-- ## TODO
 Status | Name | Date
 :---:| --- | ---
 ✅| Open3DIS [project page](https://open3dis.github.io/) launched | 2023-12-17
@@ -86,7 +86,7 @@ Status | Name | Date
 ⬜️| Publicize Open3DIS  | 
 Misc
 ✅| Support Grounded SAM | 2024-03-06
-⬜️| more... 
+⬜️| more...  -->
 
 <!-- 
 ⬜️| Provide pre-extract class-agnostic 3D proposals (3D backbone)

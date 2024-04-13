@@ -280,29 +280,28 @@ if __name__ == "__main__":
     #     with open("tracker_lifted.txt", "w") as file:
     #         file.write("Processed Scenes .\n")
 
-    # breakpoint()
-
     with torch.cuda.amp.autocast(enabled=cfg.fp16):
         
 
         for scene_id in tqdm(scene_ids):
             print("Process", scene_id)
             # Tracker
-            # done = False
-            # path = scene_id + ".pth"
-            # with open("tracker_lifted.txt", "r") as file:
-            #     lines = file.readlines()
-            #     lines = [line.strip() for line in lines]
-            #     for line in lines:
-            #         if path in line:
-            #             done = True
-            #             break
-            # if done == True:
-            #     print("existed " + path)
-            #     continue
-            # ## Write append each line
-            # with open("tracker_lifted.txt", "a") as file:
-            #     file.write(path + "\n")
+
+            done = False
+            path = scene_id + ".pth"
+            with open("tracker_lifted.txt", "r") as file:
+                lines = file.readlines()
+                lines = [line.strip() for line in lines]
+                for line in lines:
+                    if path in line:
+                        done = True
+                        break
+            if done == True:
+                print("existed " + path)
+                continue
+            ## Write append each line
+            with open("tracker_lifted.txt", "a") as file:
+                file.write(path + "\n")
 
             # if os.path.exists(os.path.join(save_dir_final, f"{scene_id}.pth")): 
             #     print(f"Skip {scene_id} as it already exists")
