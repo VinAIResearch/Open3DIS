@@ -49,7 +49,7 @@ Details of the model architecture and experimental results can be found in [our 
 ```bibtext
 @inproceedings{nguyen2023open3dis,
         title={Open3DIS: Open-Vocabulary 3D Instance Segmentation with 2D Mask Guidance}, 
-        author={Phuc D. A. Nguyen and Tuan Duc Ngo and Chuang Gan and Evangelos Kalogerakis and Anh Tran and Cuong Pham and Khoi Nguyen},
+        author={Phuc D. A. Nguyen and Tuan Duc Ngo and Evangelos Kalogerakis and Chuang Gan and Anh Tran and Cuong Pham and Khoi Nguyen},
         year={2024},
         booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}
 }
