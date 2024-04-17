@@ -16,6 +16,8 @@
 
 # Open3DIS: Open-Vocabulary 3D Instance Segmentation with 2D Mask Guidance [CVPR'24](https://cvpr.thecvf.com/)
 
+by [Phuc Nguyen](https://github.com/PhucNDA/), [Tuan Duc Ngo](https://ngoductuanlhp.github.io/), [Evangelos Kalogerakis](https://people.cs.umass.edu/~kalo/), [Chuang Gan](https://people.csail.mit.edu/ganchuang/), [Anh Tran](https://scholar.google.com/citations?user=FYZ5ODQAAAAJ&hl=en), [Cuong Pham](https://sites.google.com/view/cuongpham/home), and [Khoi Nguyen](https://www.khoinguyen.org)
+
 <a href="https://open3dis.github.io/"><img src="https://img.shields.io/badge/Website-open3dis.github.io-blue?style=for-the-badge"></a>
 <a href="https://arxiv.org/abs/2312.10671"><img src="https://img.shields.io/badge/arxiv-2312.10671-red?style=for-the-badge"></a>
 
