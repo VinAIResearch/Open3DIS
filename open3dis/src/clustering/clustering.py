@@ -421,8 +421,6 @@ def process_hierarchical_agglomerative(scene_id, cfg):
     points = torch.from_numpy(points).cuda()
     n_points = points.shape[0]
 
-    # spp = torch.tensor(torch.load(spp_path)).cuda() # memory ease
-    # n_spp = torch.unique(spp).shape[0]
     spp = loader.read_spp(spp_path)
     unique_spp, spp, num_point = torch.unique(spp, return_inverse=True, return_counts=True)
     n_spp = len(unique_spp)
@@ -440,14 +438,17 @@ def process_hierarchical_agglomerative(scene_id, cfg):
         sieve.append((spp == i).sum().item()) 
     sieve = torch.tensor(sieve)
 
-    # FIXME 
+    # FIXME k factor resource friendly, aiding scannet++ OOM issue
+    if points.shape[0] > 2000000:
+        return None, None
+    k_factor = 1
+    # while len(loader)//(cfg.data.img_interval*k_factor) > 700:
+    #     k_factor+=1
 
-    # breakpoint()
-    # mask2d_path = f'/home/tdngo/Workspace/3dis_ws/Open3DInstanceSegmentation/Dataset/replica/version_final/maskGdino0404conf/{scene_id}.pth'
     groundedsam_data_dict = torch.load(mask2d_path)
     pcd_list = []
 
-    for i in trange(0, len(loader), cfg.data.img_interval):
+    for i in trange(0, len(loader), cfg.data.img_interval * k_factor):
         frame = loader[i]
         frame_id = frame["frame_id"]
         

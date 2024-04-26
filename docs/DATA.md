@@ -6,6 +6,12 @@ At this moment, dueing to the license of Scannet, we provide an example processe
 
 Please, follow Scannet and Scannet++ license to use our preprocessed dataset.
 
+We provide our Open3DIS results:
+
+* [Scannet200_OpenVocab_ISBNet-GSAM](https://drive.google.com/file/d/1DpuNSdLjNHIjjNr6fAu6oVwVRabatnpy/view?usp=sharing)
+* Scannetpp_ClsAg_SAM
+* ...
+
 ## 3D backbone
 
 Running 3D backbone ISBNet will create isbnet_clsagnostic, dc_feat folders!

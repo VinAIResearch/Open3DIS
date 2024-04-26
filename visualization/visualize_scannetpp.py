@@ -170,7 +170,7 @@ if __name__ == "__main__":
     
     '''
     # Scene ID to visualize
-    scene_id = '09c1414f1b'
+    scene_id = 'acd95847c5'
 
     ##### The format follows the dataset tree
     ## 1

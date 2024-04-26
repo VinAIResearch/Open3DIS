@@ -162,7 +162,7 @@ if __name__ == "__main__":
     
     '''
     # Scene ID to visualize
-    scene_id = 'scene0011_00'
+    scene_id = 'scene0011_01'
 
     ##### The format follows the dataset tree
     ## 1
@@ -175,11 +175,11 @@ if __name__ == "__main__":
     check_3dviz = False
     mask3d_path = './data/Scannet200/Scannet200_3D/val/isbnet_clsagnostic_scannet200/' + scene_id + '.pth'
     ## 4
-    check_2dviz = True
+    check_2dviz = False
     mask2d_path = '../exp/version_sam/hier_agglo/' + scene_id + '.pth'
     ## 5
-    check_finalviz = False
-    agnostic_path = '../exp/version_sam/final_result_hier_agglo/' + scene_id + '.pth'
+    check_finalviz = True
+    agnostic_path = '../exp/version_qualitative/final_result_hier_agglo/' + scene_id + '.pth'
 
     pyviz3d_dir = '../viz' # visualization directory
 
