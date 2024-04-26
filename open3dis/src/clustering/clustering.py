@@ -451,7 +451,6 @@ def process_hierarchical_agglomerative(scene_id, cfg):
     for i in trange(0, len(loader), cfg.data.img_interval * k_factor):
         frame = loader[i]
         frame_id = frame["frame_id"]
-        
         # FIXME
         if frame_id not in groundedsam_data_dict.keys():
             if cfg.data.dataset_name == 'scannetpp':

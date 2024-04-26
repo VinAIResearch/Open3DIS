@@ -44,8 +44,8 @@ final_instance:
   scale_semantic_score: 300.0
 
 exp:
-  exp_name: "version_sam"
-  mask2d_output: 'maskSam' # 2D mask + pc features
+  exp_name: "version_text"
+  mask2d_output: 'masktext' # 2D mask + pc features
   grounded_feat_output: 'grounded_feat' # first stage feature
   refined_grounded_feat_output: 'refined_grounded_feat' # second stage feature
   clustering_3d_output: 'hier_agglo' # 2Dlift path

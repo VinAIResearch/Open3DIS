@@ -162,7 +162,7 @@ if __name__ == "__main__":
     
     '''
     # Scene ID to visualize
-    scene_id = 'scene0011_01'
+    scene_id = 'scene0011_00'
 
     ##### The format follows the dataset tree
     ## 1
