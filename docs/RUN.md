@@ -37,6 +37,12 @@ sh scripts/eval.sh
 
 6\) Misc:
 
+Promptable Segmentation
+```
+sh scripts/text_query.sh <config> <text_query>
+```
+
+
 Maskwise feature computation memory efficient
 ```
 sh scripts/maskwise_vocab.sh
