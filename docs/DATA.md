@@ -9,6 +9,7 @@ Please, follow Scannet and Scannet++ license to use our preprocessed dataset.
 We provide our Open3DIS results:
 
 * [Scannet200_OpenVocab_ISBNet-GSAM](https://drive.google.com/file/d/1DpuNSdLjNHIjjNr6fAu6oVwVRabatnpy/view?usp=sharing)
+* [Scannet200_OpenVocab_GSAM](https://drive.google.com/file/d/1EV2BuRn8Qu889EnmI8vUc2y9tmRTnVPW/view?usp=sharing)
 * Scannetpp_ClsAg_SAM
 * ...
 

@@ -62,7 +62,6 @@ if __name__ == "__main__":
 
 
     scenes = sorted([s for s in os.listdir(data_path) if s.endswith(".pth")])
-
     gtsem = []
     gtinst = []
     res = [] #ScannetV2

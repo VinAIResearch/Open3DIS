@@ -45,6 +45,7 @@ class ScanNetReader(object):
             [[571.623718, 0.0, 319.5], 
              [0.0, 571.623718, 239.5],
              [0.0, 0.0, 1.0]])
+             
         self.depth_scale = 1000.0
         
         intrinsic_file = os.path.join(self.root_path, "intrinsic.txt")
@@ -142,7 +143,10 @@ class ScanNetReader(object):
 
         frame["intrinsics"] = self.intrinsic
         frame["global_intrinsic"] = self.global_intrinsic
-        
+        frame["scannet_depth_intrinsic"] = np.array(
+            [[577.870605, 0.0, 319.5], 
+             [0.0, 577.870605, 239.5],
+             [0.0, 0.0, 1.0]])
         try:
             frame_intrinsic = os.path.join(self.root_path, "intrinsic", fnameintrinsic)
             frame["translated_intrinsics"] = np.loadtxt(frame_intrinsic) # for scannetpp only

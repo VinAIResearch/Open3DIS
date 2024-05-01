@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # CLIP
-import open_clip
+import clip
 
 ##### rle_decode
 import pycocotools.mask
@@ -211,10 +211,8 @@ def init_foundation_models(cfg):
     Init foundation model
     """
     # CLIP
-    clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(
-        cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint
-    )
-    clip_adapter = clip_adapter.cuda()
+    clip_adapter, clip_preprocess = clip.load(cfg.foundation_model.clip_model, device = 'cuda')
+
     # Grounding DINO
     grounding_dino_model = load_model(
         cfg.foundation_model.grounded_config_file, cfg.foundation_model.grounded_checkpoint, device="cuda"
@@ -226,8 +224,7 @@ def init_foundation_models(cfg):
 
 
 def gen_grounded_mask_and_feat(
-    scene_id, clip_adapter, clip_preprocess, grounding_dino_model, sam_predictor, class_names, cfg, gen_feat=True
-):
+    scene_id, clip_adapter, clip_preprocess, grounding_dino_model, sam_predictor, class_names, cfg, gen_feat=True):
     """
     Grounding DINO + SAM, CLIP
         Generate 2D masks from GDino box prompt
@@ -237,7 +234,6 @@ def gen_grounded_mask_and_feat(
     scene_dir = os.path.join(cfg.data.datapath, scene_id)
 
     loader = build_dataset(root_path=scene_dir, cfg=cfg)
-    # scannet_loader = ScanNetReader(root_path=scene_dir, cfg=cfg)
 
     # Pointcloud Image mapper
     img_dim = cfg.data.img_dim
@@ -269,7 +265,7 @@ def gen_grounded_mask_and_feat(
         confs_filt = []
 
         ### Cannot query directly 200 classes so split them into multiple chunks -- see Supplementary
-        segment_size = 10
+        segment_size = 1
         segments = [class_names[i : i + segment_size] for i in range(0, len(class_names), segment_size)]
         for cls_name in segments:
             boxes, confidences = get_grounding_output(
@@ -401,7 +397,7 @@ def gen_grounded_mask_and_feat(
 
             elif "scannet200" in cfg.data.dataset_name:
                 mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
-                mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+                mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["scannet_depth_intrinsic"])
                 new_mapping = scaling_mapping(
                     torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
                 )
@@ -602,6 +598,7 @@ def get_parser():
     parser = argparse.ArgumentParser(description="Configuration Open3DIS")
     parser.add_argument("--config",type=str,required = True,help="Config")
     parser.add_argument("--text_query",type=str,required = True,help="Text_query")
+    parser.add_argument("--clip_score",type=float,required = True,help="Clip Confidence Score")
 
     return parser
 
@@ -612,7 +609,7 @@ if __name__ == "__main__":
 
     cfg = Munch.fromDict(yaml.safe_load(open(args.config, "r").read()))
     text_query = args.text_query
-
+    clip_score = args.clip_score
     # Fondation model loader
     clip_adapter, clip_preprocess, grounding_dino_model, sam_predictor = init_foundation_models(cfg)
 
@@ -622,7 +619,7 @@ if __name__ == "__main__":
 
     class_names = text_query.split('.')
     with torch.no_grad(), torch.cuda.amp.autocast():
-        text_features = clip_adapter.encode_text(open_clip.tokenize(class_names + ['others']).cuda()) # Engineering OpenScene
+        text_features = clip_adapter.encode_text(clip.tokenize(class_names + ['others']).cuda()) # Engineering OpenScene
         text_features /= text_features.norm(dim=-1, keepdim=True)
 
     # Directory Init
@@ -716,7 +713,7 @@ if __name__ == "__main__":
             score, cls_final = torch.max(inst_class_scores, dim=-1)
             
             # Thresholding Filter
-            threshoding = torch.logical_and((cls_final < len(class_names)), (score > 0.7))
+            threshoding = torch.logical_and((cls_final < len(class_names)), (score > clip_score))
             instance = instance[threshoding]
             inst_class_scores = inst_class_scores[threshoding]
             cls_final = cls_final[threshoding]

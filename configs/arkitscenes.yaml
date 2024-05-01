@@ -13,19 +13,19 @@ grounded_feature:
   granularity: 0.8 # only for SAM AutoMaskGen
 
 data:
-  dataset_name: 'scannet200'
-  split_path: './open3dis/dataset/scannetv2_val.txt'
-  datapath: './data/Scannet200/Scannet200_2D_5interval/val' # RGB-D + pose path
-  gt_pth: './data/Scannet200/Scannet200_3D/val/groundtruth' # gt path
-  original_ply: './data/Scannet200/Scannet200_3D/val/original_ply_files' # raw pcl
-  spp_path: './data/Scannet200/Scannet200_3D/val/superpoints' # spp path
-  cls_agnostic_3d_proposals_path: './data/Scannet200/Scannet200_3D/val/isbnet_clsagnostic_scannet200' # cls agnostic 3D proposals
-  dc_features_path: './data/Scannet200/Scannet200_3D/val/dc_feat_scannet200' # spp feature path
-  img_dim: [640, 480] # coord alignment
-  rgb_img_dim: [1296, 968]
+  dataset_name: 'arkitscenes'
+  split_path: 'Not Yet'
+  datapath: './data/ArkitDev' # RGB-D + pose path
+  gt_pth: 'Not Yet' # gt path
+  original_ply: './data/ArkitDev/original_ply_files' # raw pcl
+  spp_path: './data/ArkitDev/superpoints' # spp path
+  cls_agnostic_3d_proposals_path: 'Not Yet' # cls agnostic 3D proposals
+  dc_features_path: 'Not Yet' # spp feature path
+  img_dim: [256, 192] # coord alignment 
+  rgb_img_dim: [256, 192]
   cut_num_pixel_boundary: 10
   img_interval: 2
-  num_classes: 198
+  num_classes: 198 # Not official
 
 cluster:
   visi: 0.9 # iou
@@ -44,7 +44,7 @@ final_instance:
 
 exp:
   exp_name: "version_text"
-  mask2d_output: 'maskGdino' # 2D mask + pc features
+  mask2d_output: 'masktext' # 2D mask + pc features
   grounded_feat_output: 'grounded_feat' # first stage feature
   refined_grounded_feat_output: 'refined_grounded_feat' # second stage feature
   clustering_3d_output: 'hier_agglo' # 2Dlift path
@@ -53,7 +53,7 @@ exp:
 
 proposals:
   p2d: True # 2D branch
-  p3d: False # 3D branch
+  p3d: True # 3D branch
   agnostic: False # returning class-agnostic masks (without class + scores)
   refined: True # feature branch, setting this True uses refined feature, else uses feature from 2D branch
                 # refer to VinAI-3DIS solution (two-stage feature): https://arxiv.org/pdf/2402.15321.pdf 

@@ -75,8 +75,11 @@ class PointCloudToImageMapper(object):
         :param intrinsic: 3x3 format
         :return: mapping, N x 3 format, (H,W,mask)
         """
-        if self.intrinsics is not None:  # global intrinsics
+        if intrinsic is not None: # adjust intrinsic
+            self.intrinsics = intrinsic
+        else:
             intrinsic = self.intrinsics
+            
         mapping = np.zeros((3, coords.shape[0]), dtype=int)
         coords_new = np.concatenate([coords, np.ones([coords.shape[0], 1])], axis=1).T
         assert coords_new.shape[0] == 4, "[!] Shape error"

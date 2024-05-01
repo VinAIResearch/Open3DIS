@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # CLIP
-import open_clip
+import clip
 
 ##### rle_decode
 import pycocotools.mask
@@ -145,10 +145,8 @@ def init_foundation_models(cfg):
     Init foundation model
     """
     # CLIP
-    clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(
-        cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint
-    )
-    clip_adapter = clip_adapter.cuda()
+    clip_adapter, clip_preprocess = clip.load(cfg.foundation_model.clip_model, device = 'cuda')
+
     # Grounding DINO
     grounding_dino_model = load_model(
         cfg.foundation_model.grounded_config_file, cfg.foundation_model.grounded_checkpoint, device="cuda"
@@ -218,7 +216,6 @@ def gen_grounded_mask_and_feat(
             if len(boxes) > 0:
                 boxes_filt.append(boxes)
                 confs_filt.append(confidences)
-
         if len(boxes_filt) == 0:  # No box in that view
             continue
         boxes_filt = torch.cat(boxes_filt)
@@ -248,7 +245,7 @@ def gen_grounded_mask_and_feat(
         confs_filt = confs_filt[target_id_valid]
 
         # BOX NMS
-        boxes_filt, confs_filt = NMS_cuda(boxes_filt, confs_filt, 0.5)
+        boxes_filt, confs_filt = NMS_cuda(boxes_filt, confs_filt, 0.5) # -> number of box dec
         boxes_filt = torch.stack(boxes_filt)
         confs_filt = torch.tensor(confs_filt)
 
@@ -285,6 +282,7 @@ def gen_grounded_mask_and_feat(
             tmp[row, col, 0] = (0 * 0.5 + tmp[row, col, 0] * (1 - 0.5)).to(torch.uint8)
             tmp[row, col, 1] = (0 * 0.5 + tmp[row, col, 1] * (1 - 0.5)).to(torch.uint8)
             tmp[row, col, 2] = (0 * 0.5 + tmp[row, col, 2] * (1 - 0.5)).to(torch.uint8)
+    
             regions.append(clip_preprocess(Image.fromarray((tmp.cpu().numpy()))))
 
         masks = torch.logical_and(masks, masks_fitted)  # fitting
@@ -299,7 +297,6 @@ def gen_grounded_mask_and_feat(
                 image_feat /= image_feat.norm(dim=-1, keepdim=True)
                 image_features.append(image_feat)
         image_features = torch.cat(image_features, dim=0)
-
         if False:
             # draw output image
             image = loader.read_image(image_path)
@@ -309,9 +306,9 @@ def gen_grounded_mask_and_feat(
                 show_mask(mask.cpu().numpy(), plt.gca(), random_color=True)
             plt.axis("off")
             # plot out
-            os.makedirs("./debug/s3dis/" + scene_id, exist_ok=True)
+            os.makedirs("../debug/scannet200/" + scene_id, exist_ok=True)
             plt.savefig(
-                os.path.join("./debug/s3dis/" + scene_id + "/sam_" + str(i) + ".jpg"),
+                os.path.join("../debug/scannet200/" + scene_id + "/sam_" + str(i) + ".jpg"),
                 bbox_inches="tight",
                 dpi=300,
                 pad_inches=0.0,
@@ -323,7 +320,6 @@ def gen_grounded_mask_and_feat(
             "img_feat": image_features.cpu(),
             "conf": confs_filt.cpu(),
         }
-
         if gen_feat:
             pose = loader.read_pose(frame["pose_path"])
             depth = loader.read_depth(frame["depth_path"])
@@ -335,7 +331,7 @@ def gen_grounded_mask_and_feat(
 
             elif "scannet200" in cfg.data.dataset_name:
                 mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
-                mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+                mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["scannet_depth_intrinsic"])
                 new_mapping = scaling_mapping(
                     torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
                 )
@@ -354,12 +350,25 @@ def gen_grounded_mask_and_feat(
 
             idx = torch.where(mapping[:, 3] == 1)[0]
 
+            if False: # Visualize highlighted points
+                import pyviz3d.visualizer as viz
+                image = loader.read_image(image_path)
+                for tmp in mapping[idx]:
+                    x, y = tmp[1].item(), tmp[2].item()
+                    image = cv2.circle(image, (y,x), radius=0, color=(0, 0, 255), thickness=-5)
+                cv2.imwrite('../test.png', image)
+                vis = viz.Visualizer()
+                color = torch.zeros_like(points).cpu().numpy()
+                color[idx.cpu(),0] =  255
+                vis.add_points(f'pcl', points.cpu().numpy(), color, point_size=20, visible=True)
+                vis.save('../viz')
+
             if len(idx) < 100:  # No points corresponds to this image, visible points on 2D image
                 continue
 
             pred_masks = BitMasks(masks.squeeze(1))
             # Flood fill single CLIP feature for 2D mask
-            final_feat = torch.einsum("qc,qhw->chw", image_features, pred_masks.tensor.float())
+            final_feat = torch.einsum("qc,qhw->chw", image_features.float(), pred_masks.tensor.float())
             ### Summing features
             grounded_features[idx] += final_feat[:, mapping[idx, 1], mapping[idx, 2]].permute(1, 0)
 
@@ -439,7 +448,7 @@ if __name__ == "__main__":
             )
 
             # Save PC features
-            torch.save({"feat": grounded_features.half()}, os.path.join(save_dir_feat, scene_id + ".pth"))
+            torch.save({"feat": grounded_features}, os.path.join(save_dir_feat, scene_id + ".pth"))
             # Save 2D mask
             torch.save(grounded_data_dict, os.path.join(save_dir, scene_id + ".pth"))
 

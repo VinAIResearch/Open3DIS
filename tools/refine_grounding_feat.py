@@ -6,7 +6,7 @@ import cv2
 
 import matplotlib.pyplot as plt
 import numpy as np
-import open_clip
+import clip
 import torch
 import yaml
 from munch import Munch
@@ -150,9 +150,9 @@ def refine_grounding_features(
 
     # Use 2D only can load feature obtained from 2D masks else init empty features
     if use_2d_proposals == True:
-        pc_features = torch.load(pc_features_path)["feat"].cuda().half()
+        pc_features = torch.load(pc_features_path)["feat"].cuda()
     else:
-        pc_features = torch.zeros_like(torch.load(pc_features_path)["feat"].cuda().half()).cuda()
+        pc_features = torch.zeros_like(torch.load(pc_features_path)["feat"]).cuda()
 
     cropped_regions = []
     batch_index = []
@@ -160,7 +160,7 @@ def refine_grounding_features(
     inst_inds = []
 
     # CLIP point cloud features
-    inst_features = torch.zeros((n_instance, 768), dtype=torch.half, device=points.device)
+    inst_features = torch.zeros((n_instance, 768), dtype=torch.float32, device=points.device)
 
     # H, W = 968, 1296
     interval = cfg.data.img_interval
@@ -186,7 +186,7 @@ def refine_grounding_features(
             mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["translated_intrinsics"])
         elif "scannet200" in cfg.data.dataset_name:
             mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
-            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["scannet_depth_intrinsic"])
             new_mapping = scaling_mapping(
                 torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
             )
@@ -271,8 +271,8 @@ def refine_grounding_features(
         pc_features[batch_index[count]] += image_features[count] * confidence_feat[count]
         inst_features[inst_inds[count]] += image_features[count] * confidence_feat[count]
 
-    refined_pc_features = F.normalize(pc_features, dim=1, p=2).half().cpu()
-    inst_features = F.normalize(inst_features, dim=1, p=2).half().cpu()
+    refined_pc_features = F.normalize(pc_features, dim=1, p=2).cpu()
+    inst_features = F.normalize(inst_features, dim=1, p=2).cpu()
     return refined_pc_features, inst_features
 
 def get_parser():
@@ -294,10 +294,7 @@ if __name__ == "__main__":
         scene_ids = sorted([line.rstrip("\n") for line in file])
 
     # Fondation model loader
-    clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(
-        cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint
-    )
-    clip_adapter = clip_adapter.cuda()
+    clip_adapter, clip_preprocess = clip.load(cfg.foundation_model.clip_model, device = 'cuda')
 
     # Directory Init
     save_dir_refined_grounded_feat = os.path.join(
@@ -336,7 +333,7 @@ if __name__ == "__main__":
 
             # Saving refined features
             torch.save(
-                {"feat": refined_pc_features.half(), "inst_feat": inst_features.half()},
+                {"feat": refined_pc_features, "inst_feat": inst_features},
                 os.path.join(save_dir_refined_grounded_feat, f"{scene_id}.pth"),
             )
 

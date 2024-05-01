@@ -500,7 +500,6 @@ def process_hierarchical_agglomerative(scene_id, cfg):
                 pad_inches=0.0,
             )
 
-        # breakpoint()
         if "scannetpp" in cfg.data.dataset_name:  # Map on image resolution in Scannetpp only
             depth = cv2.resize(depth, (img_dim[0], img_dim[1]))
             mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
@@ -508,7 +507,7 @@ def process_hierarchical_agglomerative(scene_id, cfg):
 
         elif "scannet200" in cfg.data.dataset_name:
             mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
-            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth) # global intrinsic
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["scannet_depth_intrinsic"])
             new_mapping = scaling_mapping(
                 torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
             )

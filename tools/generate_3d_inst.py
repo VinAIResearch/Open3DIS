@@ -5,7 +5,7 @@ import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-import open_clip
+import clip
 import torch
 import yaml
 from munch import Munch
@@ -82,10 +82,10 @@ def get_final_instances(
     
     # Choose which stage to use the feature ?
     if cfg.proposals.refined and os.path.exists(pc_refined_features_path):
-        pc_features = torch.load(pc_refined_features_path)["feat"].cuda().half()
+        pc_features = torch.load(pc_refined_features_path)["feat"].cuda()
     else:
-        pc_features = torch.load(pc_features_path)["feat"].cuda().half()
-
+        pc_features = torch.load(pc_features_path)["feat"].cuda()
+    
     pc_features = F.normalize(pc_features, dim=1, p=2)
 
     # 2D lifting 3D mask path
@@ -142,7 +142,7 @@ def get_final_instances(
     
     ### Offloading CPU for scannetpp @@
     # NOTE Pointwise semantic scores
-    predicted_class = (cfg.final_instance.scale_semantic_score * pc_features.half() @ text_features.cuda().T).softmax(dim=-1)
+    predicted_class = (cfg.final_instance.scale_semantic_score * pc_features @ text_features.cuda().T.float()).softmax(dim=-1)
 
     # predicted_class = torch.zeros((pc_features.shape[0], text_features.shape[0]), dtype = torch.float32)
     # bs = 100000
@@ -216,19 +216,15 @@ if __name__ == "__main__":
         gtinst = []
         res = []
         
+    clip_adapter, clip_preprocess = clip.load(cfg.foundation_model.clip_model, device = 'cuda')
 
-    clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(
-        cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint
-    )
-    clip_adapter = clip_adapter.cuda()
     with torch.no_grad(), torch.cuda.amp.autocast():
-        text_features = clip_adapter.encode_text(open_clip.tokenize(class_names).cuda())
+        text_features = clip_adapter.encode_text(clip.tokenize(class_names).cuda())
         text_features /= text_features.norm(dim=-1, keepdim=True)
-
     # Prepare directories
     save_dir_cluster = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.clustering_3d_output)
     os.makedirs(save_dir_cluster, exist_ok=True)
-    save_dir_final = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.clustering_3d_output) # final_output
+    save_dir_final = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.final_output) # final_output
     os.makedirs(save_dir_final, exist_ok=True)
 
     # Multiprocess logger
@@ -257,13 +253,13 @@ if __name__ == "__main__":
             # with open("tracker_lifted.txt", "a") as file:
             #     file.write(path + "\n")
 
-            if os.path.exists(os.path.join(save_dir_final, f"{scene_id}.pth")): 
-                print(f"Skip {scene_id} as it already exists")
-                continue
+            # if os.path.exists(os.path.join(save_dir_final, f"{scene_id}.pth")): 
+            #     print(f"Skip {scene_id} as it already exists")
+            #     continue
 
             #############################################
             # NOTE hierarchical agglomerative clustering
-            if True:
+            if False:
                 cluster_dict = None
                 proposals3d, confidence = process_hierarchical_agglomerative(scene_id, cfg)
 
@@ -276,10 +272,10 @@ if __name__ == "__main__":
                 }
                 torch.save(cluster_dict, os.path.join(save_dir_cluster, f"{scene_id}.pth"))
 
-                cluster_dict = torch.load(os.path.join(save_dir_cluster, f"{scene_id}.pth"))
             #############################################
             # NOTE get final instances
-            if False:   
+            if True:   
+                cluster_dict = torch.load(os.path.join(save_dir_cluster, f"{scene_id}.pth"))
                 masks_final, cls_final, scores_final = get_final_instances(
                     cfg,
                     text_features,
@@ -299,7 +295,6 @@ if __name__ == "__main__":
             # NOTE Evaluation openvocab
             if evaluate_openvocab:
                 
-
                 if cfg.data.dataset_name == 's3dis':
                     gt_path = os.path.join(cfg.data.gt_pth, f"{AREA}_{scene_id}.pth")
                     _, _, sem_gt, inst_gt = torch.load(gt_path)

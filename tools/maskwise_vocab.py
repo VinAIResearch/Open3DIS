@@ -6,7 +6,7 @@ import cv2
 
 import matplotlib.pyplot as plt
 import numpy as np
-import open_clip
+import clip
 import torch
 import yaml
 from munch import Munch
@@ -103,7 +103,7 @@ def maskwise_feature(cfg, scene_id, clip_adapter, clip_preprocess, instance):
 
         if "scannet200" in cfg.data.dataset_name:
             mapping = torch.ones([n_points, 4], dtype=int, device=points.device)
-            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic = frame["scannet_depth_intrinsic"])
             new_mapping = scaling_mapping(
                 torch.squeeze(mapping[:, 1:3]), img_dim[1], img_dim[0], rgb_img_dim[0], rgb_img_dim[1]
             )
@@ -215,9 +215,7 @@ if __name__ == "__main__":
 
     # Loading CLIP
     class_names = ['others']
-    clip_adapter, _, clip_preprocess = open_clip.create_model_and_transforms(
-    cfg.foundation_model.clip_model, pretrained=cfg.foundation_model.clip_checkpoint)
-    clip_adapter = clip_adapter.cuda()
+    clip_adapter, clip_preprocess = clip.load(cfg.foundation_model.clip_model, device = 'cuda')
     if cfg.data.dataset_name == 'scannet200':
         class_names = INSTANCE_CAT_SCANNET_200
         if os.path.exists("../pretrains/text_features/scannet200_text_features.pth"):
@@ -228,7 +226,7 @@ if __name__ == "__main__":
             except:
                 pass
             with torch.no_grad(), torch.cuda.amp.autocast():
-                text_features = clip_adapter.encode_text(open_clip.tokenize(class_names).cuda())
+                text_features = clip_adapter.encode_text(clip.tokenize(class_names).cuda())
                 text_features /= text_features.norm(dim=-1, keepdim=True)
                 torch.save(text_features.cpu(), "../pretrains/text_features/scannet200_text_features.pth")
     if cfg.data.dataset_name == 'scannetpp':
@@ -241,7 +239,7 @@ if __name__ == "__main__":
             except:
                 pass
             with torch.no_grad(), torch.cuda.amp.autocast():
-                text_features = clip_adapter.encode_text(open_clip.tokenize(class_names).cuda())
+                text_features = clip_adapter.encode_text(clip.tokenize(class_names).cuda())
                 text_features /= text_features.norm(dim=-1, keepdim=True)
                 torch.save(text_features.cpu(), "../pretrains/text_features/scannetpp_text_features.pth")   
     

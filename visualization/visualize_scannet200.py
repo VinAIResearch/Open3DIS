@@ -179,7 +179,7 @@ if __name__ == "__main__":
     mask2d_path = '../exp/version_sam/hier_agglo/' + scene_id + '.pth'
     ## 5
     check_finalviz = True
-    agnostic_path = '../exp/version_qualitative/final_result_hier_agglo/' + scene_id + '.pth'
+    agnostic_path = '../exp/version_check/final_result_hier_agglo/' + scene_id + '.pth'
 
     pyviz3d_dir = '../viz' # visualization directory
 
