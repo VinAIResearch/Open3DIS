@@ -13,7 +13,6 @@ from munch import Munch
 from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200
 from open3dis.dataset.scannet_loader import scaling_mapping
 from open3dis.dataset import build_dataset
-from open3dis.src.clustering.clustering import process_hierarchical_agglomerative
 from open3dis.src.fusion_util import NMS_cuda
 from open3dis.src.mapper import PointCloudToImageMapper
 from PIL import Image
@@ -150,9 +149,13 @@ def refine_grounding_features(
 
     # Use 2D only can load feature obtained from 2D masks else init empty features
     if use_2d_proposals == True:
-        pc_features = torch.load(pc_features_path)["feat"].cuda()
+        try:
+            pc_features = torch.load(pc_features_path)["feat"].cuda()
+        except:
+            print('No stage 1 grounding feature')
+            pc_features = torch.zeros((points.shape[0], 768)).cuda()
     else:
-        pc_features = torch.zeros_like(torch.load(pc_features_path)["feat"]).cuda()
+        pc_features = torch.zeros((points.shape[0], 768)).cuda()
 
     cropped_regions = []
     batch_index = []
@@ -272,7 +275,7 @@ def refine_grounding_features(
         inst_features[inst_inds[count]] += image_features[count] * confidence_feat[count]
 
     refined_pc_features = F.normalize(pc_features, dim=1, p=2).cpu()
-    inst_features = F.normalize(inst_features, dim=1, p=2).cpu()
+    inst_features = F.normalize(inst_features.cpu(), dim=1, p=2).cpu()
     return refined_pc_features, inst_features
 
 def get_parser():
@@ -282,9 +285,9 @@ def get_parser():
 
 if __name__ == "__main__":
     # Multiprocess logger
-    # if os.path.exists("tracker_refine.txt") == False:
-    #     with open("tracker_refine.txt", "w") as file:
-    #         file.write("Processed Scenes .\n")
+    if os.path.exists("tracker_refine.txt") == False:
+        with open("tracker_refine.txt", "w") as file:
+            file.write("Processed Scenes .\n")
 
     args = get_parser().parse_args()
     cfg = Munch.fromDict(yaml.safe_load(open(args.config, "r").read()))
@@ -305,23 +308,23 @@ if __name__ == "__main__":
     with torch.cuda.amp.autocast(enabled=cfg.fp16):
         for scene_id in tqdm(scene_ids):
             # Tracker
-            # done = False
-            # path = scene_id + ".pth"
-            # with open("tracker_refine.txt", "r") as file:
-            #     lines = file.readlines()
-            #     lines = [line.strip() for line in lines]
-            #     for line in lines:
-            #         if path in line:
-            #             done = True
-            #             break
-            # if done == True:
-            #     print("existed " + path)
-            #     continue
-            # # Write and append each line
-            # with open("tracker_refine.txt", "a") as file:
-            #     file.write(path + "\n")
-            # print("Process", scene_id)
-
+            done = False
+            path = scene_id + ".pth"
+            with open("tracker_refine.txt", "r") as file:
+                lines = file.readlines()
+                lines = [line.strip() for line in lines]
+                for line in lines:
+                    if path in line:
+                        done = True
+                        break
+            if done == True:
+                print("existed " + path)
+                continue
+            # Write and append each line
+            with open("tracker_refine.txt", "a") as file:
+                file.write(path + "\n")
+            print("Process", scene_id)
+            #####################################
             refined_pc_features, inst_features = refine_grounding_features(
                 scene_id,
                 cfg,

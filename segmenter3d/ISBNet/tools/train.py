@@ -285,8 +285,8 @@ def main():
     global best_metric
     best_metric = 0
 
-    # if is_main_process():
-    #     validate(0, model, optimizer, val_loader, cfg, logger, writer)
+    if is_main_process():
+        validate(0, model, optimizer, val_loader, cfg, logger, writer)
 
     # train and val
     logger.info("Training")

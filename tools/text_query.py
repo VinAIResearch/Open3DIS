@@ -42,7 +42,7 @@ from open3dis.dataset import build_dataset
 #### Open3DIS util
 from open3dis.src.fusion_util import NMS_cuda
 from open3dis.src.mapper import PointCloudToImageMapper
-from open3dis.src.clustering.clustering import process_hierarchical_agglomerative
+from open3dis.src.clustering.clustering import process_hierarchical_agglomerative_spp, process_hierarchical_agglomerative_nospp
 
 # Visualize
 import random
@@ -234,7 +234,6 @@ def gen_grounded_mask_and_feat(
     scene_dir = os.path.join(cfg.data.datapath, scene_id)
 
     loader = build_dataset(root_path=scene_dir, cfg=cfg)
-
     # Pointcloud Image mapper
     img_dim = cfg.data.img_dim
     pointcloud_mapper = PointCloudToImageMapper(
@@ -410,7 +409,9 @@ def gen_grounded_mask_and_feat(
             elif "s3dis" in cfg.data.dataset_name:
                 mapping = torch.ones([n_points, 4], dtype=int, device='cuda')
                 mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic=frame["intrinsics"])
-
+            elif "arkitscenes" in cfg.data.dataset_name:
+                mapping = torch.ones([n_points, 4], dtype=int, device='cuda')
+                mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic=frame["intrinsics"], vis_thresh = 0.2)
             else:
                 raise ValueError(f"Unknown dataset: {cfg.data.dataset_name}")
 
@@ -456,9 +457,11 @@ def refine_grounding_features(
         instance_2d = torch.stack([torch.from_numpy(rle_decode(ins)) for ins in data_2d["ins"]], dim=0)
     else:
         instance_2d = data_2d["ins"]
-
-    confidence_2d = torch.tensor(data_2d["conf"])
-
+    
+    try:
+        confidence_2d = torch.tensor(data_2d["conf"])
+    except:
+        confidence_2d = torch.ones(instance_2d.shape[0])
     ########### Proposal branch selection ###########
     instance = instance_2d
     confidence = confidence_2d
@@ -513,6 +516,9 @@ def refine_grounding_features(
             mapping = torch.ones([n_points, 4], dtype=int, device='cuda')
             mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth)
         elif "s3dis" in cfg.data.dataset_name:
+            mapping = torch.ones([n_points, 4], dtype=int, device='cuda')
+            mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic=frame["intrinsics"])
+        elif "arkitscenes" in cfg.data.dataset_name:
             mapping = torch.ones([n_points, 4], dtype=int, device='cuda')
             mapping[:, 1:4] = pointcloud_mapper.compute_mapping_torch(pose, points, depth, intrinsic=frame["intrinsics"])
         else:
@@ -633,23 +639,24 @@ if __name__ == "__main__":
         for scene_id in tqdm(scene_ids):
             print("Process", scene_id)
             # NOTE ############################################# Gen 2D masks
-            
-            print('Gen 2D masks')
-            grounded_data_dict, grounded_features = gen_grounded_mask_and_feat(
-                scene_id,
-                clip_adapter,
-                clip_preprocess,
-                grounding_dino_model,
-                sam_predictor,
-                class_names=class_names,
-                cfg=cfg,
-            )
 
-            # Save PC features
-            torch.save({"feat": grounded_features.half()}, os.path.join(save_dir_feat, scene_id + ".pth"))
-            # Save 2D mask
-            torch.save(grounded_data_dict, os.path.join(save_dir, scene_id + ".pth"))
-            torch.cuda.empty_cache()
+            print('Gen 2D masks')
+            # grounded_data_dict, grounded_features = gen_grounded_mask_and_feat(
+            #     scene_id,
+            #     clip_adapter,
+            #     clip_preprocess,
+            #     grounding_dino_model,
+            #     sam_predictor,
+            #     class_names=class_names,
+            #     cfg=cfg,
+            # )
+
+            # # Save PC features
+            # torch.save({"feat": grounded_features.half()}, os.path.join(save_dir_feat, scene_id + ".pth"))
+            # # Save 2D mask
+            # torch.save(grounded_data_dict, os.path.join(save_dir, scene_id + ".pth"))
+            # torch.cuda.empty_cache()
+
             # NOTE ############################################# Lift 2D -> 3D
             
             print('Lift 2D -> 3D')
@@ -657,7 +664,10 @@ if __name__ == "__main__":
             os.makedirs(save_dir_cluster, exist_ok=True)
 
             cluster_dict = None
-            proposals3d, confidence = process_hierarchical_agglomerative(scene_id, cfg)
+            if cfg.final_instance.spp_level: # Group by Superpoints
+                proposals3d, confidence = process_hierarchical_agglomerative_spp(scene_id, cfg)
+            else:
+                proposals3d, confidence = process_hierarchical_agglomerative_nospp(scene_id, cfg)
             if proposals3d == None: # Discarding too large scene
                 continue
             cluster_dict = {
@@ -665,6 +675,7 @@ if __name__ == "__main__":
                 "conf": confidence,
             }
             torch.save(cluster_dict, os.path.join(save_dir_cluster, f"{scene_id}.pth"))
+
             # NOTE ############################################# Feature refinement
             
             print('Feature refinement')
@@ -682,6 +693,7 @@ if __name__ == "__main__":
                 {"feat": refined_pc_features.half(), "inst_feat": inst_features.half()},
                 os.path.join(save_dir_refined_grounded_feat, f"{scene_id}.pth"),)
             torch.cuda.empty_cache()
+
             # NOTE ############################################# Finalizing output
             
             print('Final output')
@@ -696,12 +708,17 @@ if __name__ == "__main__":
             
             # 2D branch
             save_dir_cluster = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.clustering_3d_output)
+            
             data = torch.load(os.path.join(save_dir_cluster, f"{scene_id}.pth"))
             if isinstance(data["ins"][0], dict):
                 instance_2d = torch.stack([torch.from_numpy(rle_decode(ins)) for ins in data["ins"]], dim=0).cuda()
             else:
                 instance_2d = data["ins"].cuda()
-            confidence_2d = torch.tensor(data["conf"]).cuda()
+            
+            try:
+                confidence_2d = torch.tensor(data_2d["conf"])
+            except:
+                confidence_2d = torch.ones(instance_2d.shape[0])
             
             instance = instance_2d
         
@@ -730,7 +747,10 @@ if __name__ == "__main__":
             
             print('Visualizing output')
             ply_file = cfg.data.original_ply
-            point, color = read_pointcloud(os.path.join(ply_file,scene_id + '.ply'))
+            suffix = '.ply'
+            if cfg.data.dataset_name == 'arkitscenes':
+                suffix = '_3dod_mesh.ply'
+            point, color = read_pointcloud(os.path.join(ply_file,scene_id + suffix))
             color = color * 127.5
             vis = viz.Visualizer()
             vis.add_points(f'pcl', point, color.astype(np.float32), point_size=20, visible=True)
@@ -745,7 +765,7 @@ if __name__ == "__main__":
             prompt = class_names + ['others']
             pallete =  generate_palette(int(2e3 + 1))
             tt_col = color.copy()
-            limit = 10
+            limit = 0
             for i in range(0, instance.shape[0]):
                 tt_col[instance[i] == 1] = pallete[i]
                 if  limit > 0: # be more specific but limit 10 masks (avoiding lag)

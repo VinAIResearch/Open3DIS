@@ -483,8 +483,12 @@ class ISBNet(nn.Module):
             save_path = os.path.join("../../data/Scannet200/Scannet200_3D/val/dc_feat_scannet200", scan_ids[0] + ".pth")
             torch.save((voxel_mask_features[v2p_map.long()].cpu()), save_path)
         if self.dataset_name == "scannetpp":
-            save_path = os.path.join("../../data/Scannetpp/Scannetpp_3D/val/dc_feat_scannetpp", scan_ids[0] + ".pth")
+            save_path = os.path.join("../../data/Scannetpp/Scannetpp_3D/test/dc_feat_scannetpp", scan_ids[0] + ".pth")
             torch.save((voxel_mask_features[v2p_map.long()].cpu()), save_path)
+        if self.dataset_name == "arkitscenes":
+            save_path = os.path.join("../../data/ArkitScenes/dc_feat_arkitscenes", scan_ids[0] + ".pth")
+            torch.save((voxel_mask_features[v2p_map.long()].cpu()), save_path)
+        # ../../../Dataset/ArkitScenes
 
         spp_semantic_scores_sm = custom_scatter_mean(
             voxel_semantic_scores_sm,
@@ -645,8 +649,16 @@ class ISBNet(nn.Module):
             saved_confs = [m["conf"] for m in pred_instances]
             torch.save(
                 {"ins": saved_masks, "conf": saved_confs},
-                os.path.join("../../data/Scannetpp/Scannetpp_3D/val/isbnet_clsagnostic_scannetpp", scan_ids[0] + ".pth"),
+                os.path.join("../../data/Scannetpp/Scannetpp_3D/test/isbnet_clsagnostic_scannetpp", scan_ids[0] + ".pth"),
             )
+        if self.dataset_name == "arkitscenes":           
+            saved_masks = [m["pred_mask"] for m in pred_instances]
+            saved_confs = [m["conf"] for m in pred_instances]
+            torch.save(
+                {"ins": saved_masks, "conf": saved_confs},
+                os.path.join("../../data/ArkitScenes/isbnet_clsagnostic_arkitscenes", scan_ids[0] + ".pth"),
+            )            
+        # ../../../Dataset/ArkitScenes
         return ret
 
     def forward_backbone(
@@ -992,7 +1004,7 @@ class ISBNet(nn.Module):
 
             if self.dataset_name == "scannetv2":
                 pred["label_id"] = cls_final[i] + 1
-            elif self.dataset_name == "scannet200" or self.dataset_name == "scannetpp":
+            elif self.dataset_name == "scannet200" or self.dataset_name == "scannetpp" or self.dataset_name == 'scannetpp_benchmark84' or self.dataset_name == 'arkitscenes':
                 pred["label_id"] = cls_final[i] + 1
             elif self.dataset_name == "s3dis":
                 pred["label_id"] = cls_final[i] + 3

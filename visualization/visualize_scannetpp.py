@@ -7,7 +7,7 @@ import pyviz3d.visualizer as viz
 import random
 from os.path import join
 import open3d as o3d
-from open3dis.dataset.scannetpp import SEMANTIC_CAT_SCANNET_PP
+from open3dis.dataset.scannetpp import SEMANTIC_CAT_SCANNET_PP, SEMANTIC_INSTANCE_CAT_SCANNET_PP
 
 def generate_palette(n):
     palette = []
@@ -37,9 +37,8 @@ def read_pointcloud(pcd_path):
 
     return point, color
 
-# SCANNET200 = 'chair.table.door.couch.cabinet.shelf.desk.office_chair.bed.pillow.sink.picture.window.toilet.bookshelf.monitor.curtain.book.armchair.coffee_table.box.refrigerator.lamp.kitchen_cabinet.towel.clothes.tv.nightstand.counter.dresser.stool.cushion.plant.ceiling.bathtub.end_table.dining_table.keyboard.bag.backpack.toilet_paper.printer.tv_stand.whiteboard.blanket.shower_curtain.trash_can.closet.stairs.microwave.stove.shoe.computer_tower.bottle.bin.ottoman.bench.board.washing_machine.mirror.copier.basket.sofa_chair.file_cabinet.fan.laptop.shower.paper.person.paper_towel_dispenser.oven.blinds.rack.plate.blackboard.piano.suitcase.rail.radiator.recycling_bin.container.wardrobe.soap_dispenser.telephone.bucket.clock.stand.light.laundry_basket.pipe.clothes_dryer.guitar.toilet_paper_holder.seat.speaker.column.bicycle.ladder.bathroom_stall.shower_wall.cup.jacket.storage_bin.coffee_maker.dishwasher.paper_towel_roll.machine.mat.windowsill.bar.toaster.bulletin_board.ironing_board.fireplace.soap_dish.kitchen_counter.doorframe.toilet_paper_dispenser.mini_fridge.fire_extinguisher.ball.hat.shower_curtain_rod.water_cooler.paper_cutter.tray.shower_door.pillar.ledge.toaster_oven.mouse.toilet_seat_cover_dispenser.furniture.cart.storage_container.scale.tissue_box.light_switch.crate.power_outlet.decoration.sign.projector.closet_door.vacuum_cleaner.candle.plunger.stuffed_animal.headphones.dish_rack.broom.guitar_case.range_hood.dustpan.hair_dryer.water_bottle.handicap_bar.purse.vent.shower_floor.water_pitcher.mailbox.bowl.paper_bag.alarm_clock.music_stand.projector_screen.divider.laundry_detergent.bathroom_counter.object.bathroom_vanity.closet_wall.laundry_hamper.bathroom_stall_door.ceiling_light.trash_bin.dumbbell.stair_rail.tube.bathroom_cabinet.cd_case.closet_rod.coffee_kettle.structure.shower_head.keyboard_piano.case_of_water_bottles.coat_rack.storage_organizer.folded_chair.fire_alarm.power_strip.calendar.poster.potted_plant.luggage.mattress'
-# SCANNETV2 = 'cabinet.bed.chair.sofa.table.door.window.bookshelf.picture.counter.desk.curtain.refrigerator.shower_curtain.toilet.sink.bathtub'
-class_names = SEMANTIC_CAT_SCANNET_PP
+# class_names = SEMANTIC_CAT_SCANNET_PP # original files
+class_names = SEMANTIC_INSTANCE_CAT_SCANNET_PP # modified Scannet200 like 
 
 class VisualizationScannetpp:
     def __init__(self, point, color):
@@ -70,7 +69,7 @@ class VisualizationScannetpp:
 
         print('---Done---')
     
-    def gtviz(self, gt_data, specific = False): # pending
+    def gtviz(self, gt_data, specific = True): # pending
         print('...Visualizing Groundtruth...')
         normalized_point, normalized_color, sem_label, ins_label = torch.load(gt_data)
         pallete =  generate_palette(int(2e3 + 1))
@@ -150,7 +149,7 @@ class VisualizationScannetpp:
                 tt_col_specific = self.color.copy()
                 tt_col_specific[instance[i] == 1] = pallete[i]
                 if vocab == True:
-                    self.vis.add_points(f'final mask: ' + str(i) + '_' + class_names[label[i]], self.point, tt_col_specific, point_size=20, visible=True)                
+                    self.vis.add_points(f'final mask: ' + str(i) + '_' + class_names[label[i] - 105], self.point, tt_col_specific, point_size=20, visible=True)                
                 else:
                     self.vis.add_points(f'final mask: ' + str(i) + '_' + str(conf2d[i].item())[:5], self.point, tt_col_specific, point_size=20, visible=True)
 
@@ -183,7 +182,7 @@ if __name__ == "__main__":
     check_3dviz = False
     mask3d_path = './data/Scannetpp/Scannetpp_3D/val/isbnet_clsagnostic_scannetpp/' + scene_id + '.pth'
     ## 4
-    check_2dviz = True
+    check_2dviz = False
     mask2d_path = '../exp_scannetpp/version_sam/hier_agglo/' + scene_id + '.pth'
     ## 5
     check_finalviz = False
@@ -202,7 +201,7 @@ if __name__ == "__main__":
     if check_superpointviz:
         VIZ.superpointviz(spp_path)
     if check_gtviz:
-        VIZ.gtviz(gt_path, specific = False)
+        VIZ.gtviz(gt_path, specific = True)
     if check_3dviz:
         VIZ.vizmask3d(mask3d_path, specific = False)
     if check_2dviz:

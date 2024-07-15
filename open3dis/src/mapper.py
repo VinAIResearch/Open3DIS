@@ -20,7 +20,7 @@ class PointCloudToImageMapper(object):
         if use_torch:
             self.intrinsics = torch.from_numpy(self.intrinsics).to(device)
 
-    def compute_mapping_torch(self, camera_to_world, coords, depth=None, intrinsic=None):
+    def compute_mapping_torch(self, camera_to_world, coords, depth=None, intrinsic=None, vis_thresh = None):
         """
         :param camera_to_world: 4 x 4
         :param coords: N x 3 format
@@ -29,6 +29,8 @@ class PointCloudToImageMapper(object):
         :return: mapping, N x 3 format, (H,W,mask)
         """
         device = coords.device
+        if vis_thresh != None:
+            self.vis_thres = vis_thresh
         if intrinsic is not None: # adjust intrinsic
             self.intrinsics = intrinsic
         else:

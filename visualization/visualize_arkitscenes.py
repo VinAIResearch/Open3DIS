@@ -63,24 +63,28 @@ class VisualizationArkit:
         self.vis.add_points(f'superpoint: ' + str(i), self.point, tt_col, point_size=20, visible=True)
         print('---Done---')
     
-    # def vizmask3d(self, mask3d_path, specific = False):
-    #     print('...Visualizing 3D backbone mask...')
-    #     dic = torch.load(mask3d_path)
-    #     instance = dic['ins']
-    #     conf3d = dic['conf']
-    #     pallete =  generate_palette(int(2e3 + 1))
-    #     tt_col = self.color.copy()
-    #     limit = 10
-    #     for i in range(0, instance.shape[0]):
-    #         tt_col[instance[i] == 1] = pallete[i]
-    #         if specific and limit > 0: # be more specific but limit 10 masks (avoiding lag)
-    #             limit -= 1
-    #             tt_col_specific = self.color.copy()
-    #             tt_col_specific[instance[i] == 1] = pallete[i]
-    #             self.vis.add_points(f'3D backbone mask: ' + str(i) + '_' + str(conf3d[i]), self.point, tt_col_specific, point_size=20, visible=True)
+    def vizmask3d(self, mask3d_path, specific = False):
+        print('...Visualizing 3D backbone mask...')
+        dic = torch.load(mask3d_path)
+        instance = dic['ins']
+        try:
+            instance = torch.stack([torch.tensor(rle_decode(ins)) for ins in instance])
+        except:
+            pass
+        conf3d = dic['conf']
+        pallete =  generate_palette(int(2e3 + 1))
+        tt_col = self.color.copy()
+        limit = 0
+        for i in range(0, instance.shape[0]):
+            tt_col[instance[i] == 1] = pallete[i]
+            if specific and limit > 0: # be more specific but limit 10 masks (avoiding lag)
+                limit -= 1
+                tt_col_specific = self.color.copy()
+                tt_col_specific[instance[i] == 1] = pallete[i]
+                self.vis.add_points(f'3D backbone mask: ' + str(i) + '_' + str(conf3d[i]), self.point, tt_col_specific, point_size=20, visible=True)
 
-    #     self.vis.add_points(f'3D backbone mask: ' + str(i), self.point, tt_col, point_size=20, visible=True)
-    #     print('---Done---')
+        self.vis.add_points(f'3D backbone mask: ' + str(i), self.point, tt_col, point_size=20, visible=True)
+        print('---Done---')
 
     # def vizmask2d(self, mask2d_path, specific = False):
     #     print('...Visualizing 2D lifted mask...')
@@ -137,23 +141,29 @@ if __name__ == "__main__":
     
     '''
     # Scene ID to visualize
-    scene_id = '42446478'
+    scene_id = '42446100'
 
     ##### The format follows the dataset tree
     ## 1
     check_superpointviz = True
-    spp_path = './data/ArkitDev/superpoints/' + scene_id + '.pth'
+    spp_path = './data/ArkitScenes/superpoints-01/' + scene_id + '.pth'
 
     pyviz3d_dir = '../viz' # visualization directory
 
     # Visualize Point Cloud 
-    ply_file = './data/ArkitDev/original_ply_files'
+    ply_file = './data/ArkitScenes/original_ply_files'
     point, color = read_pointcloud(os.path.join(ply_file,scene_id + '_3dod_mesh.ply'))
     color = color * 127.5
+    
+    ## 2
+    check_3dviz = False
+    mask3d_path = './data/ArkitScenes/isbnet_clsagnostic_arkitscenes/' + scene_id + '.pth'
 
     VIZ = VisualizationArkit(point, color)    
     
     if check_superpointviz:
         VIZ.superpointviz(spp_path)
+    if check_3dviz:
+        VIZ.vizmask3d(mask3d_path, specific = False)
 
     VIZ.save(pyviz3d_dir)

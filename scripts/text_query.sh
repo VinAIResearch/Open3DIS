@@ -1,7 +1,7 @@
 #!/bin/bash
 
-dataset_cfg=${1:-'configs/scannet200.yaml'}
-text_query=${2:-'chair.table'}
+dataset_cfg=${1:-'configs/arkitscenes.yaml'}
+text_query=${2:-'horse_picture'}
 clip_score=${3:-0.8}
 export PYTHONWARNINGS="ignore"
 PYTHONPATH=./:$PYTHONPATH

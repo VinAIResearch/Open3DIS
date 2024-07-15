@@ -521,7 +521,6 @@ def get_instance_info(coords_float, instance_labels, semantic_labels, label_shif
     instance_cls = []
     instance_box = []
     instance_num = int(instance_labels.max()) + 1
-
     centroid_offset_labels = (
         torch.ones((coords_float.shape[0], 3), dtype=coords_float.dtype, device=coords_float.device) * -100.0
     )
@@ -549,7 +548,10 @@ def get_instance_info(coords_float, instance_labels, semantic_labels, label_shif
         instance_cls.append(semantic_labels[cls_idx])
 
     instance_cls = torch.tensor(instance_cls, device=coords_float.device)
-    instance_box = torch.stack(instance_box, dim=0)  # N, 6
+    try:
+        instance_box = torch.stack(instance_box, dim=0)  # N, 6
+    except:
+        instance_box = torch.tensor([], device=coords_float.device)
     instance_cls[instance_cls != -100] = instance_cls[instance_cls != -100] - label_shift
 
     return instance_cls, instance_box, centroid_offset_labels, corners_offset_labels

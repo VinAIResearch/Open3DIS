@@ -10,12 +10,12 @@ import torch
 import yaml
 from munch import Munch
 from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200 # Scannet200
-from open3dis.dataset.scannetpp import SEMANTIC_CAT_SCANNET_PP # ScannetPP
+from open3dis.dataset.scannetpp import SEMANTIC_CAT_SCANNET_PP, INSTANCE_BENCHMARK84_SCANNET_PP # ScannetPP
 from open3dis.dataset.replica import INSTANCE_CAT_REPLICA
 from open3dis.dataset.s3dis import INSTANCE_CAT_S3DIS, AREA
 
 from open3dis.evaluation.scannetv2_inst_eval import ScanNetEval
-from open3dis.src.clustering.clustering import process_hierarchical_agglomerative
+from open3dis.src.clustering.clustering import process_hierarchical_agglomerative_spp, process_hierarchical_agglomerative_nospp
 from torch.nn import functional as F
 from tqdm import tqdm, trange
 
@@ -80,13 +80,7 @@ def get_final_instances(
     pc_features_path = os.path.join(exp_path, cfg.exp.grounded_feat_output, f"{scene_id}.pth")
     pc_refined_features_path = os.path.join(exp_path, cfg.exp.refined_grounded_feat_output, f"{scene_id}.pth")
     
-    # Choose which stage to use the feature ?
-    if cfg.proposals.refined and os.path.exists(pc_refined_features_path):
-        pc_features = torch.load(pc_refined_features_path)["feat"].cuda()
-    else:
-        pc_features = torch.load(pc_features_path)["feat"].cuda()
-    
-    pc_features = F.normalize(pc_features, dim=1, p=2)
+
 
     # 2D lifting 3D mask path
     cluster_dict_path = os.path.join(exp_path, cfg.exp.clustering_3d_output, f"{scene_id}.pth")
@@ -138,47 +132,70 @@ def get_final_instances(
     if only_instance == True:  # Return class-agnostic 3D instance
         return instance, None, None
 
+    # Choose which stage to use the feature ?
+    if cfg.proposals.refined and os.path.exists(pc_refined_features_path):
+        pc_features = torch.load(pc_refined_features_path)["feat"].cuda()
+    else:
+        pc_features = torch.load(pc_features_path)["feat"].cuda()
     
+    pc_features = F.normalize(pc_features, dim=1, p=2)    
     
     ### Offloading CPU for scannetpp @@
     # NOTE Pointwise semantic scores
-    predicted_class = (cfg.final_instance.scale_semantic_score * pc_features @ text_features.cuda().T.float()).softmax(dim=-1)
+    # predicted_class = (cfg.final_instance.scale_semantic_score * pc_features @ text_features.cuda().T.float()).softmax(dim=-1)
 
-    # predicted_class = torch.zeros((pc_features.shape[0], text_features.shape[0]), dtype = torch.float32)
-    # bs = 100000
-    # for batch in range(0, pc_features.shape[0], bs):
-    #     start = batch
-    #     end = min(start + bs, pc_features.shape[0])
-    #     predicted_class[start:end] = (cfg.final_instance.scale_semantic_score * pc_features[start:end].cpu() @ text_features.T.cpu().to(torch.float32)).softmax(dim=-1).cpu()
+    predicted_class = torch.zeros((pc_features.shape[0], text_features.shape[0]), dtype = torch.float32)
+    bs = 100000
+    for batch in range(0, pc_features.shape[0], bs):
+        start = batch
+        end = min(start + bs, pc_features.shape[0])
+        predicted_class[start:end] = (cfg.final_instance.scale_semantic_score * pc_features[start:end].cpu() @ text_features.T.cpu().to(torch.float32)).softmax(dim=-1).cpu()
+    predicted_class = predicted_class.cuda()
 
+    del pc_features
+    torch.cuda.empty_cache() 
     # NOTE Mask-wise semantic scores
-    inst_class_scores = torch.einsum("kn,nc->kc", instance.float(), predicted_class.float()).cuda()  # K x classes
+    inst_class_scores = torch.einsum("kn,nc->kc", instance.float().cpu(), predicted_class.float().cpu()).cuda()  # K x classes
     inst_class_scores = inst_class_scores / instance.float().cuda().sum(dim=1)[:, None]  # K x classes
 
-    # # NOTE Top-K instances
-    inst_class_scores = inst_class_scores.reshape(-1)  # n_cls * n_queries
-
-    labels = (
-        torch.arange(cfg.data.num_classes, device=inst_class_scores.device)
-        .unsqueeze(0)
-        .repeat(n_instance, 1)
-        .flatten(0, 1)
-    )
 
 
-    cur_topk = 600 if use_3d_proposals else cfg.final_instance.top_k
-    _, idx = torch.topk(inst_class_scores, k=min(cur_topk, len(inst_class_scores)), largest=True)
-    mask_idx = torch.div(idx, cfg.data.num_classes, rounding_mode="floor")
 
-    cls_final = labels[idx]
-    scores_final = inst_class_scores[idx].cuda()
-    masks_final = instance[mask_idx]
+    if cfg.final_instance.duplicate:
+        # # NOTE Top-K instances
+        inst_class_scores = inst_class_scores.reshape(-1)  # n_cls * n_queries
+
+        labels = (
+            torch.arange(cfg.data.num_classes, device=inst_class_scores.device)
+            .unsqueeze(0)
+            .repeat(n_instance, 1)
+            .flatten(0, 1)
+        )
+        cur_topk = 600 if use_3d_proposals else cfg.final_instance.top_k
+        _, idx = torch.topk(inst_class_scores, k=min(cur_topk, len(inst_class_scores)), largest=True)
+        mask_idx = torch.div(idx, cfg.data.num_classes, rounding_mode="floor")
+
+        cls_final = labels[idx]
+        scores_final = inst_class_scores[idx].cuda()
+        masks_final = instance[mask_idx]
+    else:
+        idx = torch.argmax(inst_class_scores, dim = -1)
+        cls_final = idx.cpu()
+        scores_final = inst_class_scores[:, idx]
+        masks_final = instance
+
 
     return masks_final, cls_final, scores_final
 
 
 # evaluate_openvocab = False
 # evaluate_agnostic = False
+
+class DeticMask:
+    def __init__(self, pred_masks_rle=None, scores=None, pred_masks=None):
+        self.pred_masks_rle = pred_masks_rle
+        self.scores = scores
+        self.pred_masks = pred_masks
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Configuration Open3DIS")
@@ -207,6 +224,10 @@ if __name__ == "__main__":
         class_names = INSTANCE_CAT_REPLICA
     elif cfg.data.dataset_name == 's3dis':     
         class_names = INSTANCE_CAT_S3DIS
+    elif cfg.data.dataset_name == 'scannetpp_benchmark':
+        class_names = INSTANCE_BENCHMARK84_SCANNET_PP
+    elif cfg.data.dataset_name == 'arkitscenes':
+        class_names = ['None', 'None']
     else:
         raise ValueError(f"Unknown dataset: {cfg.data.dataset_name}")
 
@@ -235,33 +256,31 @@ if __name__ == "__main__":
     with torch.cuda.amp.autocast(enabled=cfg.fp16):
         for scene_id in tqdm(scene_ids):
             print("Process", scene_id)
-            # # Tracker
-
-            # done = False
-            # path = scene_id + ".pth"
-            # with open("tracker_lifted.txt", "r") as file:
-            #     lines = file.readlines()
-            #     lines = [line.strip() for line in lines]
-            #     for line in lines:
-            #         if path in line:
-            #             done = True
-            #             break
-            # if done == True:
-            #     print("existed " + path)
-            #     continue
-            # ## Write append each line
-            # with open("tracker_lifted.txt", "a") as file:
-            #     file.write(path + "\n")
-
-            # if os.path.exists(os.path.join(save_dir_final, f"{scene_id}.pth")): 
-            #     print(f"Skip {scene_id} as it already exists")
-            #     continue
+            ## Tracker
+            done = False
+            path = scene_id + ".pth"
+            with open("tracker_lifted.txt", "r") as file:
+                lines = file.readlines()
+                lines = [line.strip() for line in lines]
+                for line in lines:
+                    if path in line:
+                        done = True
+                        break
+            if done == True:
+                print("existed " + path)
+                continue
+            ## Write append each line
+            with open("tracker_lifted.txt", "a") as file:
+                file.write(path + "\n")
 
             #############################################
             # NOTE hierarchical agglomerative clustering
-            if False:
+            if True:
                 cluster_dict = None
-                proposals3d, confidence = process_hierarchical_agglomerative(scene_id, cfg)
+                if cfg.final_instance.spp_level: # Group by Superpoints
+                    proposals3d, confidence = process_hierarchical_agglomerative_spp(scene_id, cfg)
+                else:
+                    proposals3d, confidence = process_hierarchical_agglomerative_nospp(scene_id, cfg)
 
                 if proposals3d == None: # Discarding too large scene
                     continue
@@ -274,7 +293,7 @@ if __name__ == "__main__":
 
             #############################################
             # NOTE get final instances
-            if True:   
+            if False:   
                 cluster_dict = torch.load(os.path.join(save_dir_cluster, f"{scene_id}.pth"))
                 masks_final, cls_final, scores_final = get_final_instances(
                     cfg,
@@ -284,11 +303,18 @@ if __name__ == "__main__":
                     use_3d_proposals=cfg.proposals.p3d,
                     only_instance=cfg.proposals.agnostic,
                 )
-                final_dict = {
-                    "ins": rle_encode_gpu_batch(masks_final),
-                    "conf": scores_final.cpu(),
-                    "final_class": cls_final.cpu(),
-                }
+                if scores_final == None:
+                    final_dict = {
+                        "ins": rle_encode_gpu_batch(masks_final),
+                        "conf": None,
+                        "final_class": None,
+                    }
+                else:
+                    final_dict = {
+                        "ins": rle_encode_gpu_batch(masks_final),
+                        "conf": scores_final.cpu(),
+                        "final_class": cls_final.cpu(),
+                    }
                 # NOTE Final instance
                 torch.save(final_dict, os.path.join(save_dir_final, f"{scene_id}.pth"))
             #############################################

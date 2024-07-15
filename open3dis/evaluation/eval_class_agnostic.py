@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from isbnet.util.rle import rle_decode
 from open3dis.dataset.scannet200 import INSTANCE_CAT_SCANNET_200
-from open3dis.dataset.scannetpp import SEMANTIC_CAT_SCANNET_PP # ScannetPP
+from open3dis.dataset.scannetpp import SEMANTIC_CAT_SCANNET_PP, INSTANCE_BENCHMARK84_SCANNET_PP # ScannetPP
 from scannetv2_inst_eval import ScanNetEval
 from tqdm import tqdm
 import argparse
@@ -49,9 +49,9 @@ if __name__ == "__main__":
             data_path = os.path.join(cfg.data.cls_agnostic_3d_proposals_path)
         if eval_type == '2D_3D':
             pass
-    if cfg.data.dataset_name  == 'scannetpp':
-        # eval instance + 100plus semantic classes
-        scan_eval = ScanNetEval(class_labels=SEMANTIC_CAT_SCANNET_PP, use_label = False, dataset_name = 'scannetpp')
+    if cfg.data.dataset_name  == 'scannetpp': # 
+        # eval on 1554instance classes, inputting sem+ins set
+        scan_eval = ScanNetEval(class_labels=SEMANTIC_INSTANCE_CAT_SCANNET_PP, use_label = False, dataset_name = 'scannetpp')
         pcl_path = cfg.data.gt_pth # groundtruth
         if eval_type == '2D':
             data_path = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.clustering_3d_output)
@@ -59,6 +59,17 @@ if __name__ == "__main__":
             data_path = os.path.join(cfg.data.cls_agnostic_3d_proposals_path)
         if eval_type == '2D_3D':
             pass
+    if cfg.data.dataset_name  == 'scannetpp_benchmark': # 
+        # eval on 84 top instance classes
+        scan_eval = ScanNetEval(class_labels=INSTANCE_BENCHMARK84_SCANNET_PP, use_label = False, dataset_name = 'scannetpp_benchmark')
+        pcl_path = cfg.data.gt_pth # groundtruth
+        if eval_type == '2D':
+            data_path = os.path.join(cfg.exp.save_dir, cfg.exp.exp_name, cfg.exp.clustering_3d_output)
+        if eval_type == '3D':
+            data_path = os.path.join(cfg.data.cls_agnostic_3d_proposals_path)
+        if eval_type == '2D_3D':
+            pass
+
 
 
     scenes = sorted([s for s in os.listdir(data_path) if s.endswith(".pth")])

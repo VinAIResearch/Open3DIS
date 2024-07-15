@@ -225,17 +225,17 @@ def compute_relation_matrix_self(instance_pt_count, spp, sieve):
 
 ### Fast but Memory cost !
 
-# def compute_relation_matrix_self(instance_pt_count):
-#     if not torch.is_tensor(instance_pt_count):
-#         instance_pt_count = torch.from_numpy(instance_pt_count)
-#     instance_pt_mask = instance_pt_count.to(torch.bool).to(torch.float32)
-#     intersection = instance_pt_mask @ instance_pt_mask.T  # (M, num_instances)
-#     inliers = instance_pt_mask.sum(1, keepdims=True)
-#     union = inliers + inliers.T - intersection
-#     iou_matrix = intersection / (union + 1e-6)
-#     precision_matrix = intersection / (inliers.T + 1e-6)
-#     recall_matrix = intersection / (inliers + 1e-6)
-#     return iou_matrix, precision_matrix, recall_matrix
+def compute_relation_matrix_self_mem(instance_pt_count):
+    if not torch.is_tensor(instance_pt_count):
+        instance_pt_count = torch.from_numpy(instance_pt_count)
+    instance_pt_mask = instance_pt_count.to(torch.bool).to(torch.float32)
+    intersection = instance_pt_mask @ instance_pt_mask.T  # (M, num_instances)
+    inliers = instance_pt_mask.sum(1, keepdims=True)
+    union = inliers + inliers.T - intersection
+    iou_matrix = intersection / (union + 1e-6)
+    precision_matrix = intersection / (inliers.T + 1e-6)
+    recall_matrix = intersection / (inliers + 1e-6)
+    return iou_matrix, precision_matrix, recall_matrix
 
 
 def find_connected_components(adj_matrix):

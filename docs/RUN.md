@@ -52,3 +52,21 @@ Class-agnostic evaluation
 ```
 sh scripts/eval_classagnostic.sh
 ```
+
+Reproduce OpenSUN3D challenge 3D instance retrieval
+```
+# Generating results
+sh scripts/opensun3d.sh
+# Submit results
+python tools/submit_opensun3d.py 
+``` 
+Submit ScanNet++ 3D instance segmentation benchmark
+```
+# Step 1-4 with 'configs/scannetpp_benchmark_instance_test.yaml'
+# Submit results
+sh scripts/submit_scannetpp_benchmark.sh configs/scannetpp_benchmark_instance_test.yaml
+```
+[OpenYOLO3D](https://github.com/aminebdj/OpenYOLO3D) achieves remarkable results, we provide a reproducible version of OpenYOLO3D based on Open3DIS codebase
+```
+sh scripts/reproduce_openyolo3d.sh <config>
+```

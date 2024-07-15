@@ -1025,7 +1025,13 @@ class ScanNet200Dataset(CustomDataset):
             semantic_label = np.zeros(xyz.shape[0], dtype=np.long)
             instance_label = np.zeros(xyz.shape[0], dtype=np.long)
         else:
-            xyz, rgb, semantic_label, instance_label = torch.load(filename)
+            try:
+                xyz, rgb, semantic_label, instance_label = torch.load(filename)
+            except:
+                print('Arkitscenes')
+                xyz, rgb = torch.load(filename)
+                semantic_label = np.zeros(xyz.shape[0], dtype=np.long)
+                instance_label = np.zeros(xyz.shape[0], dtype=np.long)
 
         spp_filename = osp.join(self.data_root, "superpoints", scan_id + ".pth")
         spp = torch.load(spp_filename)

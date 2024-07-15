@@ -12,11 +12,17 @@
 2. [Data Preparation](#Data_Preparation) 
 3. [Run the code](#Run_the_code)
 4. [Acknowledgments](#Acknowledgments)
-5. [Contacts](#Contacts)
 
 # Open3DIS: Open-Vocabulary 3D Instance Segmentation with 2D Mask Guidance [CVPR'24](https://cvpr.thecvf.com/)
 
 by [Phuc Nguyen](https://github.com/PhucNDA/), [Tuan Duc Ngo](https://ngoductuanlhp.github.io/), [Evangelos Kalogerakis](https://people.cs.umass.edu/~kalo/), [Chuang Gan](https://people.csail.mit.edu/ganchuang/), [Anh Tran](https://scholar.google.com/citations?user=FYZ5ODQAAAAJ&hl=en), [Cuong Pham](https://sites.google.com/view/cuongpham/home), and [Khoi Nguyen](https://www.khoinguyen.org)
+
+## News :zap:
+
+* **Jun 2024**: VinAI-3DIS wins [OpenSUN3D Workshop Challenge](https://opensun3d.github.io/index_cvpr24.html) with Open3DIS
+* **Jun 2024**: Open3DIS - only2D on [ScanNet++ benchmark](https://kaldir.vc.in.tum.de/scannetpp/benchmark/insseg)
+* **Feb 2024**: Open3DIS is accepted to the [CVPR 2024](https://openaccess.thecvf.com/content/CVPR2024/html/Nguyen_Open3DIS_Open-Vocabulary_3D_Instance_Segmentation_with_2D_Mask_Guidance_CVPR_2024_paper.html)
+* **Dec 2023**: Open3DIS released on [arxiv](https://arxiv.org/abs/2312.10671)
 
 <a href="https://open3dis.github.io/"><img src="https://img.shields.io/badge/Website-open3dis.github.io-blue?style=for-the-badge"></a>
 <a href="https://arxiv.org/abs/2312.10671"><img src="https://img.shields.io/badge/arxiv-2312.10671-red?style=for-the-badge"></a>
@@ -61,7 +67,9 @@ Details of the model architecture and experimental results can be found in [our 
 ## Features :mega:
 * State-of-the-art performance of Open-Vocabulary Instance Segmentation on ScanNet200, S3DIS, and Replica.
 * Support Open-Vocabulary queries: affordances, materials, color, shape, etc.
-* Reproducibility code for both ScanNet200, Replica, S3DIS and Scannet++ datasets!
+* Reproducibility code for ScanNet200, Replica, S3DIS, ArkitScenes and Scannet++ datasets!
+* 2D segmenter: Support RAM++, Grounding DINO, SAM, YOLO-World!
+* 3D segmenter: Support ISBNet!
 * Demo application for scene visualization
 
 

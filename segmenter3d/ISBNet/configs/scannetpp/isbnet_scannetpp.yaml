@@ -33,7 +33,7 @@ model:
 data:
   train:
     type: 'scannetpp'
-    data_root: '../../../Dataset/Scannetpp/Scannetpp_3D/val'
+    data_root: '../../../Dataset/Scannetpp/Scannetpp_3D/test'
     prefix: 'groundtruth'
     suffix: '.pth'
     training: True
@@ -45,7 +45,7 @@ data:
       min_npoint: 5000
   test:
     type: 'scannetpp'
-    data_root: '../../../Dataset/Scannetpp/Scannetpp_3D/val'
+    data_root: '../../../Dataset/Scannetpp/Scannetpp_3D/test'
     prefix: 'groundtruth'
     suffix: '.pth'
     training: False

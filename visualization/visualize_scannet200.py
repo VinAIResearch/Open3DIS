@@ -88,6 +88,10 @@ class VisualizationScannet200:
         print('...Visualizing 3D backbone mask...')
         dic = torch.load(mask3d_path)
         instance = dic['ins']
+        try:
+            instance = torch.stack([torch.tensor(rle_decode(ins)) for ins in instance])
+        except:
+            pass
         conf3d = dic['conf']
         pallete =  generate_palette(int(2e3 + 1))
         tt_col = self.color.copy()
@@ -149,6 +153,23 @@ class VisualizationScannet200:
         self.vis.add_points(f'final mask: ' + str(i), self.point, tt_col, point_size=20, visible=True)
         print('---Done---')  
 
+    def featureviz(self, feature_path):
+        print('...Visualizing final class agnostic mask...')
+        # breakpoint()
+        dic = torch.load(feature_path)['feat']
+        pallete =  generate_palette(int(2e3 + 1))
+        tt_col = self.color.copy()
+        feat = torch.mean(dic, dim = -1)
+        feat = feat - torch.min(feat).item()
+        feat*=1000
+        breakpoint()
+        feat = torch.nn.functional.normalize(feat, dim = -1)
+        for i in range(self.point.shape[0]):
+            tt_col = tt_col[i, :]*feat[i].item()
+
+        self.vis.add_points(f'feature: _', self.point, tt_col, point_size=20, visible=True)                
+        print('---Done---')  
+
 if __name__ == "__main__":
     
     '''
@@ -175,14 +196,17 @@ if __name__ == "__main__":
     check_3dviz = False
     mask3d_path = './data/Scannet200/Scannet200_3D/val/isbnet_clsagnostic_scannet200/' + scene_id + '.pth'
     ## 4
-    check_2dviz = False
-    mask2d_path = '../exp/version_sam/hier_agglo/' + scene_id + '.pth'
+    check_2dviz = True
+    mask2d_path = '../exp_scannet200/version_yoloworld/hier_agglo/' + scene_id + '.pth'
     ## 5
-    check_finalviz = True
-    agnostic_path = '../exp/version_check/final_result_hier_agglo/' + scene_id + '.pth'
+    check_finalviz = False
+    agnostic_path = '../exp/version_detic/final_result_hier_agglo/' + scene_id + '.pth'
+    # 6
+    check_featureviz = False
+    feature_path = '../exp/version_check/refined_grounded_feat/' + scene_id + '.pth'
+
 
     pyviz3d_dir = '../viz' # visualization directory
-
     # Visualize Point Cloud 
     ply_file = './data/Scannet200/Scannet200_3D/val/original_ply_files'
     point, color = read_pointcloud(os.path.join(ply_file,scene_id + '.ply'))
@@ -199,5 +223,7 @@ if __name__ == "__main__":
     if check_2dviz:
         VIZ.vizmask2d(mask2d_path, specific = False)
     if check_finalviz:
-        VIZ.finalviz(agnostic_path, specific = True, vocab = True)
+        VIZ.finalviz(agnostic_path, specific = False, vocab = False)
+    if check_featureviz:
+        VIZ.featureviz(feature_path)
     VIZ.save(pyviz3d_dir)

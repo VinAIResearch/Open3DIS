@@ -1,2 +1,101 @@
 class,class id,ap,ap50,ap25
-class_agnostic,0.40162560662860064,0.4997700162087329,0.5463680558375883
+wall,0.0,0.0,0.0
+ceiling,0.10044764433551198,0.31666666666666665,0.41015625
+floor,0.0,0.0,0.0
+window frame,0.04545454545454545,0.06818181818181818,0.06818181818181818
+doorframe,0.0,0.0,0.0
+pipe,0.0,0.0,0.0
+windowsill,0.0,0.0,0.0
+shower wall,nan,nan,nan
+kitchen counter,0.0,0.0,0.0
+electrical duct,0.16666666666666666,0.375,0.375
+paper,nan,nan,nan
+board,0.061277123082678644,0.09375,0.20833333333333331
+cloth,0.04925925925925926,0.13,0.1925925925925926
+blind rail,0.17545484080571802,0.5277777777777778,0.5333333333333333
+air vent,0.042214975570238726,0.12666666666666668,0.1278409090909091
+clothes hanger,nan,nan,nan
+table,0.1277777777777778,0.2,0.2
+door,0.17460317460317462,0.5238095238095238,0.5294117647058824
+ceiling lamp,0.0625,0.5625,0.5714285714285714
+cabinet,0.43518518518518523,0.625,0.625
+blinds,0.0,0.0,0.0
+curtain,0.3028423772609819,0.4372093023255814,0.4390243902439025
+chair,0.37777777777777777,0.6,0.6
+storage cabinet,0.2279202279202279,0.5128205128205128,0.5131578947368421
+office chair,nan,nan,nan
+bookshelf,0.1728878939990051,0.26,0.2619047619047619
+whiteboard,0.0,0.0,0.0
+window,0.10030864197530864,0.18055555555555555,0.6363636363636364
+box,0.27901752568419236,0.36363636363636365,0.37037037037037035
+monitor,0.0,0.0,0.0
+shelf,0.15555555555555556,0.30000000000000004,0.30000000000000004
+heater,0.02962962962962963,0.13333333333333333,0.4
+kitchen cabinet,0.2222222222222222,1.0,1.0
+sofa,0.0,0.0,0.0
+bed,nan,nan,nan
+trash can,0.0,0.0,0.0
+book,nan,nan,nan
+plant,nan,nan,nan
+blanket,nan,nan,nan
+tv,nan,nan,nan
+computer tower,nan,nan,nan
+refrigerator,0.3638888888888889,1.0,1.0
+jacket,0.0,0.0,0.0
+sink,0.020833333333333332,0.1875,0.1875
+bag,0.03448951597099745,0.06349206349206349,0.4513888888888889
+picture,nan,nan,nan
+pillow,nan,nan,nan
+towel,nan,nan,nan
+suitcase,0.0,0.0,0.0
+backpack,nan,nan,nan
+crate,nan,nan,nan
+keyboard,0.0,0.0,0.0
+rack,0.08518518518518518,0.26666666666666666,0.26666666666666666
+toilet,nan,nan,nan
+printer,0.5925925925925926,0.6666666666666666,0.6666666666666666
+poster,nan,nan,nan
+painting,nan,nan,nan
+microwave,0.0,0.0,0.0
+shoes,nan,nan,nan
+socket,0.20833333333333334,0.3125,0.5
+bottle,0.0,0.0,0.0
+bucket,nan,nan,nan
+cushion,nan,nan,nan
+basket,0.0,0.0,0.0
+shoe rack,nan,nan,nan
+telephone,0.0,0.0,0.0
+file folder,0.16666666666666666,0.375,0.375
+laptop,0.0,0.0,0.0
+plant pot,0.0,0.0,0.0
+exhaust fan,nan,nan,nan
+cup,nan,nan,nan
+coat hanger,0.0,0.0,0.0
+light switch,0.0,0.0,0.3
+speaker,0.0,0.0,0.0
+table lamp,nan,nan,nan
+kettle,nan,nan,nan
+smoke detector,nan,nan,nan
+container,nan,nan,nan
+power strip,nan,nan,nan
+slippers,nan,nan,nan
+paper bag,nan,nan,nan
+mouse,nan,nan,nan
+cutting board,nan,nan,nan
+toilet paper,nan,nan,nan
+paper towel,nan,nan,nan
+pot,nan,nan,nan
+clock,nan,nan,nan
+pan,nan,nan,nan
+tap,nan,nan,nan
+jar,nan,nan,nan
+soap dispenser,nan,nan,nan
+binder,nan,nan,nan
+bowl,nan,nan,nan
+tissue box,nan,nan,nan
+whiteboard eraser,nan,nan,nan
+toilet brush,nan,nan,nan
+spray bottle,nan,nan,nan
+headphones,nan,nan,nan
+stapler,nan,nan,nan
+marker,nan,nan,nan

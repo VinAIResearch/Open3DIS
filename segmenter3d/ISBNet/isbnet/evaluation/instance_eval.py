@@ -253,6 +253,8 @@ class ScanNetEval(object):
             gts_sem = gts_sem - 2 + 1
         elif self.dataset_name == "stpls3d":
             gts_sem = gts_sem - 1 + 1
+        elif self.dataset_name == "scannetpp_benchmark84":
+            gts_sem = gts_sem - 16 + 1            
         else:
             gts_sem = gts_sem + 1
         gts_sem[gts_sem < 0] = 0

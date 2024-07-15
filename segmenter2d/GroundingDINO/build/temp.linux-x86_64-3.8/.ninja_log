@@ -11,3 +11,5 @@
 9	5020	1711121878000000000	/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/build/temp.linux-x86_64-3.8/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cpu.o	91f1cbe88409fe54
 8	17226	1711121891000000000	/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/build/temp.linux-x86_64-3.8/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/groundingdino/models/GroundingDINO/csrc/vision.o	5eff0fa070eda818
 9	53111	1711121926000000000	/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/build/temp.linux-x86_64-3.8/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cuda.o	cf821b76c04c24a9
+24	5008	1719809065000000000	/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/build/temp.linux-x86_64-3.8/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cpu.o	91f1cbe88409fe54
+24	16837	1719809077000000000	/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/build/temp.linux-x86_64-3.8/root/CVPR24/Open3DIS/segmenter2d/GroundingDINO/groundingdino/models/GroundingDINO/csrc/vision.o	5eff0fa070eda818

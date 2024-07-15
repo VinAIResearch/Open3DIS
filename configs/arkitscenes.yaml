@@ -1,43 +1,58 @@
 foundation_model:
+  # Recognize-Anything Model PLUS
+  ram_checkpoint: '../pretrains/foundation_models/ram_plus_swin_large_14m.pth'
+  # Grounding DINO
   grounded_config_file: './segmenter2d/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py'
   grounded_checkpoint: '../pretrains/foundation_models/groundingdino_swint_ogc.pth'
-  sam_checkpoint: '../pretrains/foundation_models/sam_vit_h_4b8939.pth'
-  clip_model: 'ViT-L/14@336px'
-  device: 'cuda'
   box_threshold: 0.4
   text_threshold: 0.4
+  # YOLO-World
+  yoloworld_config_file: './segmenter2d/YOLO-World/configs/pretrain/yolo_world_v2_x_vlpan_bn_2e-3_100e_4x8gpus_obj365v1_goldg_train_lvis_minival.py'
+  yoloworld_checkpoint: '../pretrains/foundation_models/yolo_world_v2_x_obj365v1_goldg_cc3mlite_pretrain_1280ft-14996a36.pth'
+  # Segment Anything Model
+  sam_checkpoint: '../pretrains/foundation_models/sam_vit_h_4b8939.pth'
+  # CLIP
+  clip_model: 'ViT-L/14@336px'
+  device: 'cuda'
   clip_dim: 768
 
-
-grounded_feature:
-  granularity: 0.8 # only for SAM AutoMaskGen
+### Current supported segmenter2ds
+# ['Grounded-SAM': GDino + SAM || 
+# 'RAM Grounded-SAM': RAM + GDino + SAM || 
+# 'YoloW-SAM': YOLO-World + SAM ||
+# 'RAM YoloW-SAM: RAM+ YOLO-World + SAM]'
+###
+segmenter2d:
+  model: 'Grounded-SAM' # select 2D segmenter
 
 data:
   dataset_name: 'arkitscenes'
-  split_path: 'Not Yet'
-  datapath: './data/ArkitDev' # RGB-D + pose path
+  split_path: './open3dis/dataset/arkitscenes_opensun3d1.txt'
+  datapath: './data/ArkitScenes' # RGB-D + pose path
   gt_pth: 'Not Yet' # gt path
-  original_ply: './data/ArkitDev/original_ply_files' # raw pcl
-  spp_path: './data/ArkitDev/superpoints' # spp path
-  cls_agnostic_3d_proposals_path: 'Not Yet' # cls agnostic 3D proposals
-  dc_features_path: 'Not Yet' # spp feature path
+  original_ply: './data/ArkitScenes/original_ply_files' # raw pcl
+  spp_path: './data/ArkitScenes/superpoints-001' # spp path
+  cls_agnostic_3d_proposals_path: './data/ArkitScenes/isbnet_clsagnostic_arkitscenes' # cls agnostic 3D proposals
+  dc_features_path: './data/ArkitScenes/dc_feat_arkitscenes' # spp feature path
   img_dim: [256, 192] # coord alignment 
   rgb_img_dim: [256, 192]
   cut_num_pixel_boundary: 10
-  img_interval: 2
+  img_interval: 10
   num_classes: 198 # Not official
 
 cluster:
-  visi: 0.9 # iou
+  visi: 0.4 # iou
   recall: 0.9 # recall
   simi: 0.9 # dc_feats
-  point_visi: 0.2
+  point_visi: 0.5
   valid_points: 50
 
 refine_grounding:
   top_k: 5
 
 final_instance:
+  spp_level: False # Turning this flag on use spp lifting ||  pointwise lifting
+  duplicate: True
   iou_overlap: 0.9
   top_k: 300
   scale_semantic_score: 300.0
@@ -49,7 +64,7 @@ exp:
   refined_grounded_feat_output: 'refined_grounded_feat' # second stage feature
   clustering_3d_output: 'hier_agglo' # 2Dlift path
   final_output: 'final_result_hier_agglo' 
-  save_dir: '../exp'
+  save_dir: '../exp_arkit'
 
 proposals:
   p2d: True # 2D branch

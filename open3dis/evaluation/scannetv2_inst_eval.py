@@ -266,10 +266,13 @@ class ScanNetEval(object):
             gts_sem = gts_sem - 1 + 1
         elif self.dataset_name == "stpls3d":
             gts_sem = gts_sem - 1 + 1
-        elif self.dataset_name == 'scannetpp':
+        elif self.dataset_name == 'scannetpp': # like scannet200 set (SEM + INS)
             gts_sem = gts_sem - 105 + 1
+        elif self.dataset_name == 'scannetpp_benchmark':
+            gts_sem = gts_sem - 16 + 1 # We shift 84 instance to zero-index
         else: # scanetpp (account for 100+ semantic classes ~)
             gts_sem = gts_sem + 1
+        
 
         gts_sem[gts_sem < 0] = 0
         gts_ins = gts_ins + 1
@@ -281,6 +284,7 @@ class ScanNetEval(object):
         ############################################
 
         gt_instances = get_instances(gts, self.valid_class_ids, self.valid_class_labels, self.id2label, dataset = self.dataset_name)
+        
         # associate
         if self.use_label:
             gt2pred = deepcopy(gt_instances)
