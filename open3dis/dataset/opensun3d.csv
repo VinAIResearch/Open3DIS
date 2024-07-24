@@ -1,0 +1,26 @@
+video_id,visit_id,query,rotate,groundedSAM,CLIP_query,Score,3D proposals,2D proposals,box_thresh,text_thresh,depth_thresh,post-process,panoptic_filter,num_filter,pwise_mwise,size_shrink,
+42446165,422014,watercolor painting on the table,2,picture,watercolor painting on the table,0.998,0,1,0.4,0.4,0.1,0.5,0,0,1,0, ok
+42446151,422018,hoverboard,1,blue hoverboard ,blue hoverboard,0.95,0,1,0.4,0.4,0.2,0.5,0,0,1,0, ok
+42445991,422024,picture of a horse,0,horse picture, horse picture,0.9999,0,1,0.3,0.3,0.1,0.1,0,0,1,0, ok
+42446100,422034,post-it,1,yellow sticky note,yellow sticky note on the picture,0.6,0,1,0.22,0.22,0.1,0.5,0,0,1,400, fixing
+42446540,422381,red switch,0,red light switch,red light switch,0.98,0,1,0.4,0.4,0.1,0.5,0,0,1,0, ok
+42446529,422386,package of paper towel rolls,0,toilet paper roll,package of paper towel rolls,0.99999,0,1,0.33,0.33,0.12,0.12,0,0,1,0,ok
+42897564,422785,victorian upholstered chair,0,King Chair,victorian chair,0.98,1,0,0.4,0.4,0.2,0.5,0,0,1,0, ok
+42897545,422813,watering can,0,pink watering can,pink watering can,0.98,0,1,0.5,0.5,0.5,0.6,1,100,1,0, ok
+42897688,423441,Dyson air purifier,0,Dyson air purifier,white electric purifier standing fan,0.99999,0,1,0.4,0.4,0.2,0.5,0,0,1,0, ok
+42898818,434641,seashell,2,seashell,the egg rounded SHELL,0.997,0,1,0.4,0.4,0.05,0.6,1,200,1,0, ok
+42898817,434650,Persil,2,Persil pack,Blue pack name Persil,0.999999,0,1,0.4,0.4,0.2,0.2,1,300,1,0, ok
+42899459,435385,large letter M,1,Blue large letter M,large letter M,0.99999,0,1,0.4,0.4,0.2,0.2,1,400,1,0, ok
+45261150,466801,Star Wars sheet,1,Star Wars sheet,Star Wars sheet,0.9999,0,1,0.4,0.4,0.2,0.5,0,0,1,0, ok
+45261133,466803,portrait of Queen Elizabeth,1,Queen Elizabeth picture,portrait of Queen Elizabeth,0.99999,0,1,0.4,0.4,0.2,0.5,0,0,1,0, ok
+47333934,467301,furniture than can seat three people,1,three-seat sofa,three-seat sofa,0.98,0,1,0.4,0.4,0.2,0.5,1,30000,1,0, ok
+47331262,468267,musical instrument,0,musical instrument,musical instrument,0.99999,0,1,0.4,0.4,0.2,0.5,0,0,1,0, ok
+45662987,468711,wall art hanging across the fireplace,2,painting,wall art woman,0.9999,0,1,0.4,0.4,0.2,0.5,0,0,1,0, ok
+47332916,469249,heart shaped pillow,2,red heart shaped pillow,red heart shaped pillow,0.9999984,0,1,0.4,0.4,0.2,0.2,0,0,1,0,ok
+47430036,470512,Winnie-the-Pooh,0,Winnie-the-Pooh yellow bear,Winnie-the-Pooh,0.9999,0,1,0.4,0.4,0.2,0.5,1,400,1,0, ok
+47115474,470652,folded towel stack,0,blue folded towel stack,blue folded towel stack under three cup,0.99999,0,1,0.4,0.4,0.2,0.15,0,0,1,0,fine
+47115526,470659,hippopotamus,1,hippopotamus,hippopotamus,0.9999,0,1,0.4,0.4,0.2,0.5,0,0,1,0, ok
+47115452,470661,giant decorative fork,2, giant fork,giant decorative fork,0.9992,0,1,0.4,0.4,0.2,0.5,0,0,1,0,fine
+47204573,471940,lego head,0,lego head on the box,yellow lego head on the box,0.9999999,0,1,0.4,0.4,0.2,0.05,0,0,1,0, ok
+47895732,482328,gamepad,0,gamepad, game console,0.99999,0,1,0.4,0.4,0.05,0.3,0,0,1,0, fine
+48018367,483313,oven mitts,1,oven gloves,oven gloves,0.95,0,1,0.4,0.4,0.2,0.3,0,0,1,780,
