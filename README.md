@@ -117,7 +117,7 @@ This repo is built upon [ISBNet](https://github.com/VinAIResearch/ISBNet), [Open
 
 If you have any questions or suggestions about this repo, please feel free to contact me (phucnda@gmail.com).
 
-## Copyright (c) 2024 VinAI Research
+## Copyright (c) 2024 VinAI
 ```
 THE DATA IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
